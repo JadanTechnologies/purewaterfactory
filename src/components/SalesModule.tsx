@@ -468,23 +468,47 @@ export default function SalesModule({
               </tbody>
             </table>
 
-            <div style={{ fontSize: '10px', textAlign: 'right', marginTop: '10px', lineHeight: '1.5', fontFamily: 'monospace' }}>
-              <div>SUBTOTAL: ₦{selectedInvoice.totalAmount.toLocaleString()}</div>
-              <div>VAT (7.5%): INCLUDED</div>
-              <div style={{ fontSize: '11px', fontWeight: 'bold', borderTop: '1px dashed #000', paddingTop: '4px', marginTop: '4px' }}>
-                TOTAL AMOUNT: ₦{selectedInvoice.totalAmount.toLocaleString()}
-              </div>
-              <div>AMOUNT PAID: ₦{selectedInvoice.amountPaid.toLocaleString()}</div>
-              {selectedInvoice.totalAmount - selectedInvoice.amountPaid > 0 ? (
-                <div style={{ color: '#000', fontWeight: 'bold', borderTop: '1px dashed #000', paddingTop: '2px', marginTop: '2px' }}>
-                  BALANCE DUE: ₦{(selectedInvoice.totalAmount - selectedInvoice.amountPaid).toLocaleString()}
-                </div>
-              ) : (
-                <div style={{ fontWeight: 'bold', color: 'green', borderTop: '1px dashed #000', paddingTop: '2px', marginTop: '2px' }}>
-                  *** PAID IN FULL ***
-                </div>
-              )}
-            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '9.5px', marginTop: '10px', fontFamily: 'monospace' }}>
+              <tbody>
+                <tr>
+                  <td style={{ textAlign: 'left', padding: '3px 0' }}>SUBTOTAL:</td>
+                  <td style={{ textAlign: 'right', padding: '3px 0' }}>₦{selectedInvoice.totalAmount.toLocaleString()}</td>
+                </tr>
+                {settings?.taxRate ? (
+                  <tr>
+                    <td style={{ textAlign: 'left', padding: '3px 0' }}>VAT ({settings.taxRate}%):</td>
+                    <td style={{ textAlign: 'right', padding: '3px 0' }}>₦{((selectedInvoice.totalAmount * settings.taxRate) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  </tr>
+                ) : (
+                  <tr>
+                    <td style={{ textAlign: 'left', padding: '3px 0' }}>VAT (7.5%):</td>
+                    <td style={{ textAlign: 'right', padding: '3px 0' }}>INCLUDED</td>
+                  </tr>
+                )}
+                <tr style={{ borderTop: '1px dashed #000', borderBottom: '1px dashed #000', fontWeight: 'bold' }}>
+                  <td style={{ textAlign: 'left', padding: '5px 0', fontSize: '11px' }}>GRAND TOTAL:</td>
+                  <td style={{ textAlign: 'right', padding: '5px 0', fontSize: '11px' }}>
+                    ₦{(settings?.taxRate ? selectedInvoice.totalAmount + (selectedInvoice.totalAmount * settings.taxRate) / 100 : selectedInvoice.totalAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </td>
+                </tr>
+                <tr>
+                  <td style={{ textAlign: 'left', padding: '4px 0' }}>AMOUNT PAID:</td>
+                  <td style={{ textAlign: 'right', padding: '4px 0' }}>₦{selectedInvoice.amountPaid.toLocaleString()}</td>
+                </tr>
+                {selectedInvoice.totalAmount - selectedInvoice.amountPaid > 0 ? (
+                  <tr style={{ fontWeight: 'bold', color: '#000', borderTop: '1px dashed #000' }}>
+                    <td style={{ textAlign: 'left', padding: '4px 0' }}>BALANCE DUE:</td>
+                    <td style={{ textAlign: 'right', padding: '4px 0' }}>₦{(selectedInvoice.totalAmount - selectedInvoice.amountPaid).toLocaleString()}</td>
+                  </tr>
+                ) : (
+                  <tr style={{ fontWeight: 'bold', borderTop: '1px dashed #000' }}>
+                    <td colSpan={2} style={{ textAlign: 'center', padding: '6px 0', color: '#000', fontSize: '10px' }}>
+                      *** PAID IN FULL ***
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
 
             <div style={{ borderTop: '1px dashed #000', marginTop: '15px', paddingTop: '10px', fontSize: '9px', textAlign: 'center', lineHeight: '1.4', fontFamily: 'monospace' }}>
               <p style={{ fontWeight: 'bold', margin: '0 0 4px 0' }}>CUSTOMER SIGNATURE: _________________</p>
