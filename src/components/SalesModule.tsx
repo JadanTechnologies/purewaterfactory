@@ -4,6 +4,7 @@
  */
 
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   TrendingUp, 
   Plus, 
@@ -461,7 +462,8 @@ export default function SalesModule({
       {selectedInvoice && (
         <>
           {/* Hidden POS Thermal Receipt for Browser window.print() */}
-          <div id="pos-print-section" className="hidden" style={{ color: '#000', backgroundColor: '#fff' }}>
+          {createPortal(
+            <div id="pos-print-section" className="hidden" style={{ color: '#000', backgroundColor: '#fff' }}>
             <div style={{ textAlign: 'center', marginBottom: '12px' }}>
               {settings?.logoUrl && (
                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '6px' }}>
@@ -576,7 +578,9 @@ export default function SalesModule({
               </p>
               <p style={{ marginTop: '6px', fontSize: '7.5px', color: '#777' }}>PWFMS Enterprise Cloud Run v1.4</p>
             </div>
-          </div>
+          </div>,
+          document.body
+          )}
 
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
             <div className="bg-slate-800 border border-slate-700 w-full max-w-lg rounded-2xl p-6 shadow-2xl animate-in scale-in duration-150 flex flex-col md:flex-row gap-6">
