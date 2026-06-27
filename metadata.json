@@ -1,0 +1,6 @@
+{
+  "name": "Water Factory Management System",
+  "description": "A comprehensive cloud-ready management system for table/pure water factories, including production tracking, inventory, sales, expenses, returns, leakages, and role-based views.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
