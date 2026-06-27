@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   TrendingUp, 
   Droplet, 
@@ -15,7 +15,8 @@ import {
   UserCheck, 
   ArrowUpRight, 
   ChevronRight,
-  TrendingDown
+  TrendingDown,
+  Calculator
 } from 'lucide-react';
 import { 
   Sale, 
@@ -54,6 +55,40 @@ export default function Dashboard({
   t,
   onNavigate
 }: DashboardProps) {
+
+  // Clock & Calculator States
+  const [time, setTime] = useState(new Date());
+  const [calcInput, setCalcInput] = useState('');
+  const [showCalc, setShowCalc] = useState(false);
+
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleCalcPress = (val: string) => {
+    if (val === 'C') {
+      setCalcInput('');
+    } else if (val === '=') {
+      try {
+        if (/^[0-9+\-*/.() ]+$/.test(calcInput)) {
+          // eslint-disable-next-line no-eval
+          const result = eval(calcInput);
+          setCalcInput(Number.isFinite(result) ? String(parseFloat(result.toFixed(4))) : 'Error');
+        } else {
+          setCalcInput('Error');
+        }
+      } catch (err) {
+        setCalcInput('Error');
+      }
+    } else {
+      if (calcInput === 'Error') {
+        setCalcInput(val);
+      } else {
+        setCalcInput(calcInput + val);
+      }
+    }
+  };
 
   // Current Date
   const todayStr = new Date().toISOString().split('T')[0];
@@ -104,8 +139,8 @@ export default function Dashboard({
     <div className="space-y-6" id="dashboard-module">
       
       {/* Welcome Banner */}
-      <div className="bg-slate-800/80 border border-slate-700/50 rounded-2xl p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
+      <div className="bg-slate-800/80 border border-slate-700/50 rounded-2xl p-6 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
+        <div className="flex-1">
           <span className="text-[10px] font-display font-bold uppercase tracking-widest text-sky-400 bg-sky-500/10 px-3 py-1 rounded-full">
             {language === 'en' ? 'Active Session' : 'Zama na Yanzu'} - {activeRole}
           </span>
@@ -118,7 +153,70 @@ export default function Dashboard({
               : 'Kulawa da tace ruwa, leda, abokan ciniki, da kasuwanci a lokacin aiki.'}
           </p>
         </div>
-        <div className="flex gap-2 w-full md:w-auto font-sans">
+
+        {/* Real-time Clock & Interactive Calculator Widget */}
+        <div className="flex flex-row items-center gap-4 bg-slate-900/60 border border-slate-700/50 p-3 rounded-xl shadow-inner relative w-full sm:w-auto self-stretch sm:self-auto justify-between sm:justify-start">
+          {/* Clock */}
+          <div className="text-left sm:text-right pr-4 border-r border-slate-700/60">
+            <span className="text-[9px] font-display font-bold text-slate-500 block uppercase tracking-wider">
+              {language === 'en' ? 'FACTORY DIGITAL CLOCK' : 'AGOGON MASANA\'ANTA'}
+            </span>
+            <span className="text-sm font-mono font-bold text-sky-400 tracking-wider block drop-shadow-[0_0_8px_rgba(56,189,248,0.2)]">
+              {time.toLocaleTimeString(language === 'en' ? 'en-US' : 'en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            </span>
+          </div>
+
+          {/* Calculator Popover Anchor */}
+          <div className="relative">
+            <button
+              onClick={() => setShowCalc(!showCalc)}
+              className="p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700/60 hover:border-emerald-500/40 text-slate-300 hover:text-white rounded-lg transition-all cursor-pointer flex items-center gap-1.5 text-xs font-display font-bold uppercase tracking-wider shadow-sm"
+              title="Open Quick Calculator"
+            >
+              <Calculator className="w-4 h-4 text-emerald-400" />
+              <span>{language === 'en' ? 'Calc' : 'Kalku'}</span>
+            </button>
+
+            {/* Calculator Panel */}
+            {showCalc && (
+              <div className="absolute right-0 top-full mt-3 w-56 bg-slate-900 border border-slate-700 rounded-xl p-3 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-100 font-sans">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-800 mb-2">
+                  <span className="text-[9px] font-display font-extrabold text-slate-400 uppercase tracking-wider">Workspace Calculator</span>
+                  <button 
+                    onClick={() => setShowCalc(false)} 
+                    className="text-slate-400 hover:text-white text-base leading-none p-1 cursor-pointer"
+                  >
+                    &times;
+                  </button>
+                </div>
+
+                {/* Display */}
+                <div className="bg-slate-950 p-2.5 rounded-lg text-right mb-2.5 font-mono text-sm font-bold text-white min-h-[36px] flex items-center justify-end truncate border border-slate-800">
+                  {calcInput || '0'}
+                </div>
+
+                {/* Grid of buttons */}
+                <div className="grid grid-cols-4 gap-1.5 text-xs font-mono font-bold">
+                  {['7', '8', '9', '/'].map(k => (
+                    <button key={k} onClick={() => handleCalcPress(k)} className="p-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg cursor-pointer transition-colors">{k}</button>
+                  ))}
+                  {['4', '5', '6', '*'].map(k => (
+                    <button key={k} onClick={() => handleCalcPress(k)} className="p-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg cursor-pointer transition-colors">{k}</button>
+                  ))}
+                  {['1', '2', '3', '-'].map(k => (
+                    <button key={k} onClick={() => handleCalcPress(k)} className="p-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg cursor-pointer transition-colors">{k}</button>
+                  ))}
+                  <button onClick={() => handleCalcPress('C')} className="p-2 bg-rose-950/40 border border-rose-900/60 text-rose-400 hover:bg-rose-900 hover:text-white rounded-lg cursor-pointer transition-all">C</button>
+                  <button onClick={() => handleCalcPress('0')} className="p-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg cursor-pointer transition-colors">0</button>
+                  <button onClick={() => handleCalcPress('=')} className="p-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg cursor-pointer transition-colors">=</button>
+                  <button onClick={() => handleCalcPress('+')} className="p-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg cursor-pointer transition-colors">+</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex gap-2 w-full xl:w-auto font-sans">
           {activeRole !== 'Store Keeper' && activeRole !== 'Cashier' && (
             <button 
               onClick={() => onNavigate('production')}

@@ -407,126 +407,205 @@ export default function SalesModule({
 
       {/* Invoice Print & Simulated Sharing Modal */}
       {selectedInvoice && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-slate-800 border border-slate-700 w-full max-w-lg rounded-2xl p-6 shadow-2xl animate-in scale-in duration-150 flex flex-col md:flex-row gap-6">
-            
-            {/* Left Column: Visual Print Receipt layout */}
-            <div className="flex-1 bg-white p-5 rounded-xl shadow-inner text-slate-900 font-mono text-[11px] leading-tight space-y-4" id="thermal-receipt-layout">
-              <div className="text-center border-b-2 border-dashed border-slate-400 pb-3">
-                <span className="font-extrabold text-xs block tracking-widest">NILE PREMIUM TABLE WATER</span>
-                <span className="text-[9px] block text-slate-600 mt-1">Plot 42, Challawa Ind. Estate, Kano</span>
-                <span className="text-[9px] block text-slate-600">Tel: +234 803 123 4567</span>
-              </div>
-
-              <div className="space-y-1">
-                <div><strong>Invoice:</strong> {selectedInvoice.invoiceNumber}</div>
-                <div><strong>Date:</strong> {selectedInvoice.date}</div>
-                <div><strong>Client:</strong> {selectedInvoice.customerName}</div>
-                <div><strong>Cashier:</strong> {selectedInvoice.salesOfficer}</div>
-              </div>
-
-              <table className="w-full text-left border-t border-b border-dashed border-slate-400 py-2">
-                <thead>
-                  <tr className="font-extrabold">
-                    <th>Item Description</th>
-                    <th className="text-center">Qty</th>
-                    <th className="text-right">Price</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="py-1">
-                    <td className="truncate max-w-[120px]">Pure Water Bags (20 Sachet)</td>
-                    <td className="text-center">{selectedInvoice.quantityBags}</td>
-                    <td className="text-right">{currency}{selectedInvoice.unitPrice}</td>
-                  </tr>
-                </tbody>
-              </table>
-
-              <div className="space-y-1 text-right">
-                <div>Subtotal: {currency}{selectedInvoice.totalAmount.toLocaleString()}</div>
-                <div>VAT (7.5%): Included</div>
-                <div className="text-xs font-bold pt-1 border-t border-dashed border-slate-400 text-emerald-700">
-                  TOTAL BILL: {currency}{selectedInvoice.totalAmount.toLocaleString()}
-                </div>
-                <div>Paid: {currency}{selectedInvoice.amountPaid.toLocaleString()}</div>
-                {selectedInvoice.totalAmount - selectedInvoice.amountPaid > 0 && (
-                  <div className="text-[10px] text-red-600 font-bold">
-                    Balance Due: {currency}{(selectedInvoice.totalAmount - selectedInvoice.amountPaid).toLocaleString()}
-                  </div>
-                )}
-              </div>
-
-              <div className="text-center border-t-2 border-dashed border-slate-400 pt-3">
-                <span className="font-bold block uppercase text-[10px]">Thank you for your patronage!</span>
-                <span className="text-[8px] text-slate-500 block mt-1">Software: PWFMS Cloud Run Enterprise</span>
-              </div>
+        <>
+          {/* Hidden POS Thermal Receipt for Browser window.print() */}
+          <div id="pos-print-section" className="hidden" style={{ color: '#000', backgroundColor: '#fff' }}>
+            <div style={{ textAlign: 'center', marginBottom: '12px' }}>
+              <h2 style={{ fontSize: '14px', fontWeight: '800', margin: '0 0 3px 0', letterSpacing: '1px', textTransform: 'uppercase', fontFamily: 'monospace' }}>
+                NILE PREMIUM WATER
+              </h2>
+              <p style={{ fontSize: '9px', margin: '2px 0', fontFamily: 'monospace' }}>Plot 42, Challawa Ind. Estate, Kano</p>
+              <p style={{ fontSize: '9px', margin: '2px 0', fontFamily: 'monospace' }}>Tel: +234 803 123 4567 | +234 905 987 6543</p>
+              <p style={{ fontSize: '10px', fontWeight: 'bold', borderTop: '1px dashed #000', borderBottom: '1px dashed #000', padding: '5px 0', margin: '10px 0 5px 0', textTransform: 'uppercase', fontFamily: 'monospace' }}>
+                * TRANSACTION INVOICE *
+              </p>
             </div>
 
-            {/* Right Column: Sharing & Notification Simulation Panels */}
-            <div className="md:w-48 flex flex-col justify-between space-y-4">
-              <div>
-                <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-2">Print & Dispatch</h3>
-                <p className="text-[10px] text-slate-400 leading-relaxed mb-4">
-                  Send commands to wireless thermal printer or dispatch digital invoice options directly.
-                </p>
-
-                <div className="space-y-2">
-                  <button
-                    onClick={() => {
-                      const printContent = document.getElementById('thermal-receipt-layout')?.innerHTML;
-                      const originalContent = document.body.innerHTML;
-                      if (printContent) {
-                        const newWindow = window.open('', '', 'width=600,height=600');
-                        newWindow?.document.write(`<html><head><title>Print Receipt</title></head><body style="font-family:monospace;padding:20px;">${printContent}</body></html>`);
-                        newWindow?.document.close();
-                        newWindow?.print();
-                      }
-                    }}
-                    className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] rounded-xl cursor-pointer flex items-center justify-center gap-1.5 transition-all"
-                  >
-                    <Printer className="w-3.5 h-3.5" /> Print Receipt
-                  </button>
-
-                  <button
-                    onClick={triggerWhatsappSimulation}
-                    className="w-full py-2 bg-green-600 hover:bg-green-500 text-white font-bold text-[10px] rounded-xl cursor-pointer flex items-center justify-center gap-1.5 transition-all"
-                  >
-                    <MessageSquare className="w-3.5 h-3.5" /> WhatsApp Share
-                  </button>
-
-                  <button
-                    onClick={triggerSmsSimulation}
-                    className="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold text-[10px] rounded-xl cursor-pointer flex items-center justify-center gap-1.5 transition-all"
-                  >
-                    <Send className="w-3.5 h-3.5" /> SMS Invoice Notify
-                  </button>
-                </div>
-              </div>
-
-              {/* Simulation feedback banner */}
-              <div className="space-y-2">
-                {whatsappSent && (
-                  <div className="bg-green-950/40 border border-green-800 text-green-400 p-2.5 rounded-xl text-[10px] animate-pulse">
-                    ✅ WhatsApp dispatch initiated! Customer notified.
-                  </div>
-                )}
-                {smsSent && (
-                  <div className="bg-sky-950/40 border border-sky-800 text-sky-400 p-2.5 rounded-xl text-[10px] animate-pulse">
-                    ✅ SMS billing notification dispatched to phone.
-                  </div>
-                )}
-
-                <button
-                  onClick={() => setSelectedInvoice(null)}
-                  className="w-full py-2 bg-slate-900 border border-slate-700 text-slate-300 font-bold text-xs rounded-xl cursor-pointer text-center"
-                >
-                  Close Receipt
-                </button>
-              </div>
+            <div style={{ fontSize: '9.5px', marginBottom: '10px', lineHeight: '1.4', fontFamily: 'monospace' }}>
+              <div><strong>INVOICE NO :</strong> {selectedInvoice.invoiceNumber}</div>
+              <div><strong>DATE/TIME  :</strong> {selectedInvoice.date} {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</div>
+              <div><strong>CLIENT     :</strong> {selectedInvoice.customerName.toUpperCase()}</div>
+              <div><strong>CASHIER    :</strong> {selectedInvoice.salesOfficer.toUpperCase()}</div>
+              <div><strong>PAY METHOD :</strong> {selectedInvoice.paymentMethod.toUpperCase()}</div>
+              <div><strong>STATUS     :</strong> {selectedInvoice.status.toUpperCase()}</div>
             </div>
 
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '9.5px', margin: '10px 0', fontFamily: 'monospace' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px dashed #000', fontWeight: 'bold' }}>
+                  <th style={{ textAlign: 'left', paddingBottom: '4px' }}>ITEM DESCRIPTION</th>
+                  <th style={{ textAlign: 'center', paddingBottom: '4px' }}>QTY</th>
+                  <th style={{ textAlign: 'right', paddingBottom: '4px' }}>PRICE</th>
+                  <th style={{ textAlign: 'right', paddingBottom: '4px' }}>TOTAL</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={{ borderBottom: '1px dashed #000' }}>
+                  <td style={{ paddingTop: '6px', paddingBottom: '6px' }}>
+                    PURE WATER BAGS<br />
+                    <span style={{ fontSize: '8px', color: '#333' }}>20 Sachet (0.5L)</span>
+                  </td>
+                  <td style={{ textAlign: 'center', paddingTop: '6px', paddingBottom: '6px' }}>{selectedInvoice.quantityBags}</td>
+                  <td style={{ textAlign: 'right', paddingTop: '6px', paddingBottom: '6px' }}>₦{selectedInvoice.unitPrice}</td>
+                  <td style={{ textAlign: 'right', paddingTop: '6px', paddingBottom: '6px' }}>₦{selectedInvoice.totalAmount.toLocaleString()}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div style={{ fontSize: '10px', textAlign: 'right', marginTop: '10px', lineHeight: '1.5', fontFamily: 'monospace' }}>
+              <div>SUBTOTAL: ₦{selectedInvoice.totalAmount.toLocaleString()}</div>
+              <div>VAT (7.5%): INCLUDED</div>
+              <div style={{ fontSize: '11px', fontWeight: 'bold', borderTop: '1px dashed #000', paddingTop: '4px', marginTop: '4px' }}>
+                TOTAL AMOUNT: ₦{selectedInvoice.totalAmount.toLocaleString()}
+              </div>
+              <div>AMOUNT PAID: ₦{selectedInvoice.amountPaid.toLocaleString()}</div>
+              {selectedInvoice.totalAmount - selectedInvoice.amountPaid > 0 ? (
+                <div style={{ color: '#000', fontWeight: 'bold', borderTop: '1px dashed #000', paddingTop: '2px', marginTop: '2px' }}>
+                  BALANCE DUE: ₦{(selectedInvoice.totalAmount - selectedInvoice.amountPaid).toLocaleString()}
+                </div>
+              ) : (
+                <div style={{ fontWeight: 'bold', color: 'green', borderTop: '1px dashed #000', paddingTop: '2px', marginTop: '2px' }}>
+                  *** PAID IN FULL ***
+                </div>
+              )}
+            </div>
+
+            <div style={{ borderTop: '1px dashed #000', marginTop: '15px', paddingTop: '10px', fontSize: '9px', textAlign: 'center', lineHeight: '1.4', fontFamily: 'monospace' }}>
+              <p style={{ fontWeight: 'bold', margin: '0 0 4px 0' }}>CUSTOMER SIGNATURE: _________________</p>
+              <p style={{ margin: '4px 0 2px 0' }}>Thank you for doing business with us!</p>
+              <p style={{ margin: '2px 0', fontSize: '8px', color: '#555' }}>Water once delivered in good condition is NOT returnable.</p>
+              <p style={{ margin: '8px 0', fontSize: '8px', letterSpacing: '2px' }}>
+                ||||| | ||||| || |||| ||||| ||||<br />
+                *{selectedInvoice.invoiceNumber}*
+              </p>
+              <p style={{ marginTop: '6px', fontSize: '7.5px', color: '#777' }}>PWFMS Enterprise Cloud Run v1.4</p>
+            </div>
           </div>
-        </div>
+
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-slate-800 border border-slate-700 w-full max-w-lg rounded-2xl p-6 shadow-2xl animate-in scale-in duration-150 flex flex-col md:flex-row gap-6">
+              
+              {/* Left Column: Visual Print Receipt layout */}
+              <div className="flex-1 bg-white p-5 rounded-xl shadow-inner text-slate-900 font-mono text-[11px] leading-tight space-y-4 border-b-8 border-dashed border-slate-300" id="thermal-receipt-layout">
+                <div className="text-center border-b border-dashed border-slate-400 pb-3">
+                  <span className="font-extrabold text-xs block tracking-widest text-slate-950">NILE PREMIUM WATER</span>
+                  <span className="text-[9px] block text-slate-600 mt-1">Plot 42, Challawa Ind. Estate, Kano</span>
+                  <span className="text-[9px] block text-slate-600">Tel: +234 803 123 4567</span>
+                  <span className="text-[10px] font-bold block mt-2 border border-slate-800 py-0.5 rounded uppercase">TAX INVOICE / RECEIPT</span>
+                </div>
+
+                <div className="space-y-1 text-slate-800 border-b border-dashed border-slate-300 pb-2">
+                  <div><strong>Invoice No:</strong> <span className="text-slate-950 font-bold">{selectedInvoice.invoiceNumber}</span></div>
+                  <div><strong>Date/Time:</strong> {selectedInvoice.date} {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</div>
+                  <div><strong>Customer:</strong> {selectedInvoice.customerName}</div>
+                  <div><strong>Cashier:</strong> {selectedInvoice.salesOfficer}</div>
+                  <div><strong>Pay Method:</strong> {selectedInvoice.paymentMethod}</div>
+                </div>
+
+                <table className="w-full text-left border-b border-dashed border-slate-300 py-1">
+                  <thead>
+                    <tr className="font-extrabold text-slate-950 border-b border-dashed border-slate-300 pb-1 text-[10px]">
+                      <th className="pb-1">Item Description</th>
+                      <th className="text-center pb-1">Qty</th>
+                      <th className="text-right pb-1">Price</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="py-1">
+                      <td className="truncate max-w-[120px] pt-1">Pure Water Bags (20 Sachet)</td>
+                      <td className="text-center pt-1">{selectedInvoice.quantityBags}</td>
+                      <td className="text-right pt-1">₦{selectedInvoice.unitPrice}</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div className="space-y-1 text-right text-slate-800">
+                  <div>Subtotal: ₦{selectedInvoice.totalAmount.toLocaleString()}</div>
+                  <div>VAT (7.5%): Included</div>
+                  <div className="text-xs font-extrabold pt-1 border-t border-dashed border-slate-300 text-emerald-800">
+                    TOTAL BILL: ₦{selectedInvoice.totalAmount.toLocaleString()}
+                  </div>
+                  <div>Paid: ₦{selectedInvoice.amountPaid.toLocaleString()}</div>
+                  {selectedInvoice.totalAmount - selectedInvoice.amountPaid > 0 ? (
+                    <div className="text-[10px] text-red-600 font-extrabold border-t border-dashed border-slate-300 pt-1">
+                      Balance Due: ₦{(selectedInvoice.totalAmount - selectedInvoice.amountPaid).toLocaleString()}
+                    </div>
+                  ) : (
+                    <div className="text-[10px] text-emerald-600 font-extrabold border-t border-dashed border-slate-300 pt-1 text-right">
+                      *** PAID IN FULL ***
+                    </div>
+                  )}
+                </div>
+
+                <div className="text-center border-t border-dashed border-slate-300 pt-3">
+                  <span className="font-bold block uppercase text-[10px] text-slate-950">Thank you for your patronage!</span>
+                  <p className="text-[8px] text-slate-500 mt-1">Water once delivered in good condition is not returnable.</p>
+                  <p className="mt-2 text-[8px] tracking-widest text-slate-400 font-sans">
+                    |||||| | |||||| || | ||||<br />
+                    *{selectedInvoice.invoiceNumber}*
+                  </p>
+                </div>
+              </div>
+
+              {/* Right Column: Sharing & Notification Simulation Panels */}
+              <div className="md:w-48 flex flex-col justify-between space-y-4">
+                <div>
+                  <h3 className="text-sm font-display font-bold text-white uppercase tracking-wider mb-2">Print & Dispatch</h3>
+                  <p className="text-[10px] text-slate-400 leading-relaxed mb-4">
+                    Send commands to wireless thermal printer or dispatch digital invoice options directly.
+                  </p>
+
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => {
+                        window.print();
+                      }}
+                      className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-display font-bold text-[10.5px] rounded-xl cursor-pointer flex items-center justify-center gap-1.5 transition-all uppercase tracking-wider shadow-md"
+                    >
+                      <Printer className="w-4 h-4" /> Print Thermal POS
+                    </button>
+
+                    <button
+                      onClick={triggerWhatsappSimulation}
+                      className="w-full py-2 bg-green-600 hover:bg-green-500 text-white font-display font-bold text-[10px] rounded-xl cursor-pointer flex items-center justify-center gap-1.5 transition-all uppercase tracking-wider"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" /> WhatsApp Share
+                    </button>
+
+                    <button
+                      onClick={triggerSmsSimulation}
+                      className="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white font-display font-bold text-[10px] rounded-xl cursor-pointer flex items-center justify-center gap-1.5 transition-all uppercase tracking-wider"
+                    >
+                      <Send className="w-3.5 h-3.5" /> SMS Notify
+                    </button>
+                  </div>
+                </div>
+
+                {/* Simulation feedback banner */}
+                <div className="space-y-2">
+                  {whatsappSent && (
+                    <div className="bg-green-950/40 border border-green-800 text-green-400 p-2.5 rounded-xl text-[10px] animate-pulse font-sans">
+                      ✅ WhatsApp dispatch initiated! Customer notified.
+                    </div>
+                  )}
+                  {smsSent && (
+                    <div className="bg-sky-950/40 border border-sky-800 text-sky-400 p-2.5 rounded-xl text-[10px] animate-pulse font-sans">
+                      ✅ SMS billing notification dispatched to phone.
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => setSelectedInvoice(null)}
+                    className="w-full py-2.5 bg-slate-900 border border-slate-700 text-slate-300 font-display font-bold text-xs rounded-xl cursor-pointer text-center uppercase tracking-wider"
+                  >
+                    Close Receipt
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </>
       )}
 
     </div>
