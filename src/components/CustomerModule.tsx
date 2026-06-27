@@ -54,7 +54,7 @@ export default function CustomerModule({
   const [payMethod, setPayMethod] = useState<'Cash' | 'Transfer' | 'POS'>('Cash');
   const [payReference, setPayReference] = useState('');
 
-  const canWrite = activeRole === 'Administrator' || activeRole === 'Factory Manager' || activeRole === 'Sales Officer' || activeRole === 'Cashier';
+  const canWrite = activeRole === 'Administrator' || activeRole === 'Factory Manager' || activeRole === 'Sales Officer' || activeRole === 'Cashier' || activeRole === 'Sales & Cashier Officer';
 
   const handleCustomerSubmit = (e: React.FormEvent) => {
     e.preventDefault();

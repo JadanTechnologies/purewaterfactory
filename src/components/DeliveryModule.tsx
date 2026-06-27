@@ -43,7 +43,7 @@ export default function DeliveryModule({
   const [destination, setDestination] = useState('Zoo Road Water Depot, Kano');
   const [quantityBags, setQuantityBags] = useState<number>(150);
 
-  const canWrite = activeRole === 'Administrator' || activeRole === 'Factory Manager' || activeRole === 'Sales Officer';
+  const canWrite = activeRole === 'Administrator' || activeRole === 'Factory Manager' || activeRole === 'Sales Officer' || activeRole === 'Sales & Cashier Officer';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

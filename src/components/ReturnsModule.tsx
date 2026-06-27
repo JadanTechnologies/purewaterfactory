@@ -38,7 +38,7 @@ export default function ReturnsModule({
   const [quantityBags, setQuantityBags] = useState<number>(10);
   const [reason, setReason] = useState<'Unsold' | 'Leaked' | 'Damaged' | 'Expired' | 'Wrong Delivery'>('Unsold');
 
-  const canWrite = activeRole === 'Administrator' || activeRole === 'Factory Manager' || activeRole === 'Sales Officer';
+  const canWrite = activeRole === 'Administrator' || activeRole === 'Factory Manager' || activeRole === 'Sales Officer' || activeRole === 'Sales & Cashier Officer';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

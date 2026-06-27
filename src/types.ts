@@ -9,7 +9,8 @@ export type UserRole =
   | 'Production Officer' 
   | 'Sales Officer' 
   | 'Store Keeper' 
-  | 'Cashier';
+  | 'Cashier'
+  | 'Sales & Cashier Officer';
 
 export interface User {
   id: string;

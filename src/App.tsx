@@ -320,6 +320,9 @@ export default function App() {
     if (roleName === 'Sales Officer') {
       return ['dashboard', 'sales', 'customers', 'returns', 'deliveries'].includes(moduleName);
     }
+    if (roleName === 'Sales & Cashier Officer') {
+      return ['dashboard', 'sales', 'customers', 'returns', 'deliveries', 'expenses', 'financials'].includes(moduleName);
+    }
     if (roleName === 'Store Keeper') {
       return ['dashboard', 'inventory'].includes(moduleName);
     }

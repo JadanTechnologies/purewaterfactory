@@ -63,18 +63,16 @@ const DEFAULT_USERS: UserAccount[] = [
   { id: 'usr-1', name: 'Adamu Ibrahim', email: 'admin@nile.com', phone: '+234 803 111 2222', role: 'Administrator', password: 'password123' },
   { id: 'usr-2', name: 'Garba Shehu', email: 'manager@nile.com', phone: '+234 803 222 3333', role: 'Factory Manager', password: 'password123' },
   { id: 'usr-3', name: 'Shehu Garba', email: 'production@nile.com', phone: '+234 803 333 4444', role: 'Production Officer', password: 'password123' },
-  { id: 'usr-4', name: 'Maryam Yusuf', email: 'sales@nile.com', phone: '+234 803 444 5555', role: 'Sales Officer', password: 'password123' },
-  { id: 'usr-5', name: 'Abubakar Sani', email: 'store@nile.com', phone: '+234 803 555 6666', role: 'Store Keeper', password: 'password123' },
-  { id: 'usr-6', name: 'Kabir Aliyu', email: 'cashier@nile.com', phone: '+234 803 666 7777', role: 'Cashier', password: 'password123' }
+  { id: 'usr-4', name: 'Maryam Yusuf', email: 'sales@nile.com', phone: '+234 803 444 5555', role: 'Sales & Cashier Officer', password: 'password123' },
+  { id: 'usr-5', name: 'Abubakar Sani', email: 'store@nile.com', phone: '+234 803 555 6666', role: 'Store Keeper', password: 'password123' }
 ];
 
 const DEFAULT_ROLES: CustomRole[] = [
   { id: 'Administrator', name: 'Administrator', allowedModules: ['dashboard', 'production', 'inventory', 'sales', 'customers', 'returns', 'leakages', 'expenses', 'staff', 'deliveries', 'financials', 'reports', 'settings'] },
   { id: 'Factory Manager', name: 'Factory Manager', allowedModules: ['dashboard', 'production', 'inventory', 'sales', 'customers', 'returns', 'leakages', 'expenses', 'deliveries', 'financials', 'reports'] },
   { id: 'Production Officer', name: 'Production Officer', allowedModules: ['dashboard', 'production', 'leakages'] },
-  { id: 'Sales Officer', name: 'Sales Officer', allowedModules: ['dashboard', 'sales', 'customers', 'returns', 'deliveries'] },
-  { id: 'Store Keeper', name: 'Store Keeper', allowedModules: ['dashboard', 'inventory'] },
-  { id: 'Cashier', name: 'Cashier', allowedModules: ['dashboard', 'customers', 'expenses', 'financials'] }
+  { id: 'Sales & Cashier Officer', name: 'Sales & Cashier Officer', allowedModules: ['dashboard', 'sales', 'customers', 'returns', 'deliveries', 'expenses', 'financials'] },
+  { id: 'Store Keeper', name: 'Store Keeper', allowedModules: ['dashboard', 'inventory'] }
 ];
 
 export const INITIAL_INVENTORY: InventoryItem[] = [
@@ -629,8 +627,9 @@ export const db = {
       case 'Factory Manager': return 'Garba Shehu (Manager)';
       case 'Production Officer': return 'Shehu Garba (Production)';
       case 'Sales Officer': return 'Maryam Yusuf (Sales)';
-      case 'Store Keeper': return 'Abubakar Sani (Store)';
       case 'Cashier': return 'Kabir Aliyu (Cashier)';
+      case 'Sales & Cashier Officer': return 'Maryam Yusuf (Sales & Cashier)';
+      case 'Store Keeper': return 'Abubakar Sani (Store)';
       default: return 'Anonymous';
     }
   },

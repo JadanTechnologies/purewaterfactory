@@ -38,7 +38,7 @@ export default function ExpenseModule({
   const [amount, setAmount] = useState<number>(5000);
   const [description, setDescription] = useState('');
 
-  const canWrite = activeRole === 'Administrator' || activeRole === 'Factory Manager' || activeRole === 'Cashier';
+  const canWrite = activeRole === 'Administrator' || activeRole === 'Factory Manager' || activeRole === 'Cashier' || activeRole === 'Sales & Cashier Officer';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

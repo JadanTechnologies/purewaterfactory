@@ -57,7 +57,7 @@ export default function SalesModule({
   const [whatsappSent, setWhatsappSent] = useState(false);
   const [smsSent, setSmsSent] = useState(false);
 
-  const canWrite = activeRole === 'Administrator' || activeRole === 'Factory Manager' || activeRole === 'Sales Officer';
+  const canWrite = activeRole === 'Administrator' || activeRole === 'Factory Manager' || activeRole === 'Sales Officer' || activeRole === 'Sales & Cashier Officer';
 
   const totalAmount = quantityBags * unitPrice;
 

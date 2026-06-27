@@ -729,15 +729,15 @@ export default function SettingsModule({
                           {r.name}
                         </h4>
                       </div>
-                      {r.id !== 'Administrator' && (
-                        <div className="flex gap-1.5">
-                          <button
-                            onClick={() => handleOpenRoleForm(r)}
-                            className="p-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-400 hover:text-white transition-all cursor-pointer"
-                            title="Edit role access permissions"
-                          >
-                            <Edit className="w-3.5 h-3.5" />
-                          </button>
+                      <div className="flex gap-1.5">
+                        <button
+                          onClick={() => handleOpenRoleForm(r)}
+                          className="p-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-400 hover:text-white transition-all cursor-pointer"
+                          title="Edit role access permissions"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                        </button>
+                        {r.id !== 'Administrator' && (
                           <button
                             onClick={() => handleDeleteRoleClick(r.id)}
                             className="p-1.5 rounded-lg bg-red-950/20 border border-red-900/40 text-red-400 hover:bg-red-600 hover:text-white transition-all cursor-pointer"
@@ -745,8 +745,8 @@ export default function SettingsModule({
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                     <p className="text-[11px] text-slate-400">
                       Has direct privilege to check out {r.allowedModules.length} custom workspaces dashboards.
