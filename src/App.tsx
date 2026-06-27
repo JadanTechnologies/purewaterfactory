@@ -128,6 +128,7 @@ export default function App() {
   // Auth & Roles state
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState({ name: '', role: 'Administrator' as string });
+  const [authenticatedRole, setAuthenticatedRole] = useState<string>('Administrator');
   const [activeModule, setActiveModule] = useState('dashboard');
   
   // Theme state
@@ -190,6 +191,7 @@ export default function App() {
 
   const handleLogin = (role: string, name: string) => {
     setCurrentUser({ name, role });
+    setAuthenticatedRole(role);
     setIsLoggedIn(true);
     db.addAudit(role as any, 'Sign In', `User ${name} authenticated successfully.`);
     syncDatabaseStates();
@@ -197,6 +199,7 @@ export default function App() {
 
   const handleLogout = () => {
     db.addAudit(currentUser.role as any, 'Sign Out', `User ${currentUser.name} logged out.`);
+    setAuthenticatedRole('Administrator');
     setIsLoggedIn(false);
   };
 
@@ -294,6 +297,10 @@ export default function App() {
 
   // Quick switch active role mock tool (makes user testing of authorization rules highly delightful)
   const handleQuickRoleSwitch = (role: string) => {
+    if (authenticatedRole !== 'Administrator') {
+      alert("Unauthorized: Only an Administrator can switch roles.");
+      return;
+    }
     const matchingUser = users.find(u => u.role === role);
     const userName = matchingUser ? matchingUser.name : `Demo ${role}`;
     setCurrentUser({ role, name: userName });
@@ -465,23 +472,25 @@ export default function App() {
         <div className="flex items-center gap-3">
           
           {/* Quick privilege Switch tool (DELIGHTFUL FOR WORKSPACE REVIEWING) */}
-          <div className="hidden lg:flex items-center gap-1 bg-slate-950 border border-slate-800 p-1 rounded-xl max-w-lg overflow-x-auto">
-            <span className="text-[10px] text-slate-500 uppercase font-bold px-2 whitespace-nowrap">Role Switch:</span>
-            {roles.map(r => (
-              <button
-                key={r.id}
-                onClick={() => handleQuickRoleSwitch(r.id)}
-                className={`text-[9px] font-bold px-2 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap ${
-                  currentUser.role === r.id 
-                    ? 'bg-sky-600 text-white' 
-                    : 'text-slate-400 hover:text-white'
-                }`}
-                title={`Hot-swap to ${r.name} view privileges`}
-              >
-                {r.name.split(' ')[0]}
-              </button>
-            ))}
-          </div>
+          {authenticatedRole === 'Administrator' && (
+            <div className="hidden lg:flex items-center gap-1 bg-slate-950 border border-slate-800 p-1 rounded-xl max-w-lg overflow-x-auto">
+              <span className="text-[10px] text-slate-500 uppercase font-bold px-2 whitespace-nowrap">Role Switch:</span>
+              {roles.map(r => (
+                <button
+                  key={r.id}
+                  onClick={() => handleQuickRoleSwitch(r.id)}
+                  className={`text-[9px] font-bold px-2 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+                    currentUser.role === r.id 
+                      ? 'bg-sky-600 text-white' 
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                  title={`Hot-swap to ${r.name} view privileges`}
+                >
+                  {r.name.split(' ')[0]}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Theme button */}
           <button 
@@ -562,7 +571,7 @@ export default function App() {
         {/* Desktop Sidebar */}
         <aside className="hidden md:block w-60 bg-slate-900/60 border-r border-slate-800/80 p-4 space-y-2 sticky top-16 h-[calc(100vh-64px)] overflow-y-auto">
           <span className="text-[10px] text-slate-500 uppercase font-extrabold tracking-wider pl-3 block mb-3">Privilege Navigation</span>
-          {navigationItems.map(item => {
+          {navigationItems.filter(item => hasAccess(item.name)).map(item => {
             const Icon = item.icon;
             const active = activeModule === item.name;
             const permitted = hasAccess(item.name);
@@ -602,7 +611,7 @@ export default function App() {
                 </div>
                 
                 <div className="space-y-1">
-                  {navigationItems.map(item => {
+                  {navigationItems.filter(item => hasAccess(item.name)).map(item => {
                     const Icon = item.icon;
                     const active = activeModule === item.name;
                     const permitted = hasAccess(item.name);
@@ -633,18 +642,20 @@ export default function App() {
               </div>
 
               {/* Mobile Role Swapper inside menu */}
-              <div className="border-t border-slate-800 pt-4 space-y-2">
-                <span className="text-[9px] text-slate-500 font-bold uppercase block pl-1">Evaluate Active Role:</span>
-                <select
-                  value={currentUser.role}
-                  onChange={(e) => handleQuickRoleSwitch(e.target.value)}
-                  className="w-full bg-slate-900 text-white border border-slate-800 rounded-lg py-1.5 px-2.5 text-xs focus:outline-none"
-                >
-                  {roles.map(r => (
-                    <option key={r.id} value={r.id}>{r.name}</option>
-                  ))}
-                </select>
-              </div>
+              {authenticatedRole === 'Administrator' && (
+                <div className="border-t border-slate-800 pt-4 space-y-2">
+                  <span className="text-[9px] text-slate-500 font-bold uppercase block pl-1">Evaluate Active Role:</span>
+                  <select
+                    value={currentUser.role}
+                    onChange={(e) => handleQuickRoleSwitch(e.target.value)}
+                    className="w-full bg-slate-900 text-white border border-slate-800 rounded-lg py-1.5 px-2.5 text-xs focus:outline-none"
+                  >
+                    {roles.map(r => (
+                      <option key={r.id} value={r.id}>{r.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -663,11 +674,14 @@ export default function App() {
                   returns={returns}
                   leakages={leakages}
                   customers={customers}
+                  expenses={expenses}
+                  payments={payments}
                   activeRole={currentUser.role}
                   currency={settings.currency}
                   language={language}
                   t={t}
                   onNavigate={(mod) => setActiveModule(mod)}
+                  hasAccess={hasAccess}
                 />
               )}
 
@@ -772,10 +786,12 @@ export default function App() {
                 <FinancialModule
                   sales={sales}
                   expenses={expenses}
+                  payments={payments}
                   customers={customers}
                   activeRole={currentUser.role}
                   currency={settings.currency}
                   language={language}
+                  hasAccess={hasAccess}
                 />
               )}
 

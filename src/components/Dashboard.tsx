@@ -25,7 +25,9 @@ import {
   ReturnedWater, 
   LeakDamage, 
   Customer,
-  UserRole
+  UserRole,
+  Expense,
+  CustomerPayment
 } from '../types';
 
 interface DashboardProps {
@@ -35,11 +37,14 @@ interface DashboardProps {
   returns: ReturnedWater[];
   leakages: LeakDamage[];
   customers: Customer[];
+  expenses: Expense[];
+  payments: CustomerPayment[];
   activeRole: UserRole;
   currency: string;
   language: 'en' | 'ha';
   t: (key: string) => string;
   onNavigate: (module: string) => void;
+  hasAccess: (moduleName: string) => boolean;
 }
 
 export default function Dashboard({
@@ -49,11 +54,14 @@ export default function Dashboard({
   returns,
   leakages,
   customers,
+  expenses = [],
+  payments = [],
   activeRole,
   currency,
   language,
   t,
-  onNavigate
+  onNavigate,
+  hasAccess
 }: DashboardProps) {
 
   // Clock & Calculator States
@@ -92,6 +100,40 @@ export default function Dashboard({
 
   // Current Date
   const todayStr = new Date().toISOString().split('T')[0];
+
+  // Unified Recent Transactions List (Sales, Customer Payments, Expenses)
+  const unifiedRecentTransactions = [
+    ...(hasAccess('sales') ? sales.map(s => ({
+      id: s.id,
+      date: s.date,
+      type: 'Sale' as const,
+      title: s.customerName,
+      subtitle: s.invoiceNumber,
+      amount: s.totalAmount,
+      status: s.status,
+      flow: 'inflow' as const
+    })) : []),
+    ...(hasAccess('customers') || hasAccess('financials') || hasAccess('sales') ? payments.map(p => ({
+      id: p.id,
+      date: p.date,
+      type: 'Payment' as const,
+      title: p.customerName,
+      subtitle: p.reference || `REF-${p.id.substring(p.id.length - 4).toUpperCase()}`,
+      amount: p.amount,
+      status: 'Paid',
+      flow: 'debt_payment' as const
+    })) : []),
+    ...(hasAccess('expenses') ? expenses.map(e => ({
+      id: e.id,
+      date: e.date,
+      type: 'Expense' as const,
+      title: e.category,
+      subtitle: e.description,
+      amount: e.amount,
+      status: 'Paid',
+      flow: 'outflow' as const
+    })) : [])
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
 
   // Stats Aggregations
   const todaySalesList = sales.filter(s => s.date === todayStr);
@@ -217,7 +259,7 @@ export default function Dashboard({
         </div>
 
         <div className="flex gap-2 w-full xl:w-auto font-sans">
-          {activeRole !== 'Store Keeper' && activeRole !== 'Cashier' && (
+          {hasAccess('production') && (
             <button 
               onClick={() => onNavigate('production')}
               className="bg-sky-600 hover:bg-sky-500 text-white font-display font-bold text-xs px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-md flex items-center justify-center gap-1.5 w-full md:w-auto tracking-wide"
@@ -226,7 +268,7 @@ export default function Dashboard({
               {language === 'en' ? 'Record Production' : 'Rikodi na Tace Ruwa'}
             </button>
           )}
-          {activeRole !== 'Production Officer' && activeRole !== 'Store Keeper' && (
+          {hasAccess('sales') && (
             <button 
               onClick={() => onNavigate('sales')}
               className="bg-emerald-600 hover:bg-emerald-500 text-white font-display font-bold text-xs px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-md flex items-center justify-center gap-1.5 w-full md:w-auto tracking-wide"
@@ -242,83 +284,91 @@ export default function Dashboard({
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" id="kpi-stats-grid">
         
         {/* STAT 1: Daily Production */}
-        <div className="bg-slate-800 border border-slate-700/60 rounded-2xl p-4 flex flex-col justify-between hover:border-sky-500/50 transition-all shadow-lg group">
-          <div className="flex justify-between items-start">
-            <div className="p-2.5 rounded-xl bg-sky-500/10 text-sky-400">
-              <Droplet className="w-5 h-5 fill-sky-400/20" />
+        {hasAccess('production') && (
+          <div className="bg-slate-800 border border-slate-700/60 rounded-2xl p-4 flex flex-col justify-between hover:border-sky-500/50 transition-all shadow-lg group">
+            <div className="flex justify-between items-start">
+              <div className="p-2.5 rounded-xl bg-sky-500/10 text-sky-400">
+                <Droplet className="w-5 h-5 fill-sky-400/20" />
+              </div>
+              <span className="text-[10px] text-slate-500 font-mono font-bold uppercase">{language === 'en' ? 'Today' : 'Yau'}</span>
             </div>
-            <span className="text-[10px] text-slate-500 font-mono font-bold uppercase">{language === 'en' ? 'Today' : 'Yau'}</span>
+            <div className="mt-4">
+              <span className="text-[10px] font-display font-bold uppercase tracking-wider text-slate-400 block">{t('todayProduction')}</span>
+              <span className="text-2xl font-mono font-bold text-white tracking-tight block mt-1">
+                {todayProductionBags.toLocaleString()} <span className="text-xs font-sans font-normal text-slate-400 uppercase tracking-wider">bags</span>
+              </span>
+              <p className="text-[10px] font-mono text-slate-500 mt-1 flex items-center gap-1">
+                <span className="text-emerald-400 font-bold">+{todayProdList.length}</span> {language === 'en' ? 'completed shifts' : 'shif-shif da aka tace'}
+              </p>
+            </div>
           </div>
-          <div className="mt-4">
-            <span className="text-[10px] font-display font-bold uppercase tracking-wider text-slate-400 block">{t('todayProduction')}</span>
-            <span className="text-2xl font-mono font-bold text-white tracking-tight block mt-1">
-              {todayProductionBags.toLocaleString()} <span className="text-xs font-sans font-normal text-slate-400 uppercase tracking-wider">bags</span>
-            </span>
-            <p className="text-[10px] font-mono text-slate-500 mt-1 flex items-center gap-1">
-              <span className="text-emerald-400 font-bold">+{todayProdList.length}</span> {language === 'en' ? 'completed shifts' : 'shif-shif da aka tace'}
-            </p>
-          </div>
-        </div>
+        )}
 
         {/* STAT 2: Today's Sales / Revenue */}
-        <div className="bg-slate-800 border border-slate-700/60 rounded-2xl p-4 flex flex-col justify-between hover:border-emerald-500/50 transition-all shadow-lg group">
-          <div className="flex justify-between items-start">
-            <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400">
-              <TrendingUp className="w-5 h-5" />
+        {hasAccess('sales') && (
+          <div className="bg-slate-800 border border-slate-700/60 rounded-2xl p-4 flex flex-col justify-between hover:border-emerald-500/50 transition-all shadow-lg group">
+            <div className="flex justify-between items-start">
+              <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400">
+                <TrendingUp className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] text-slate-500 font-mono font-bold uppercase">{language === 'en' ? 'Today' : 'Yau'}</span>
             </div>
-            <span className="text-[10px] text-slate-500 font-mono font-bold uppercase">{language === 'en' ? 'Today' : 'Yau'}</span>
+            <div className="mt-4">
+              <span className="text-[10px] font-display font-bold uppercase tracking-wider text-slate-400 block">{t('todaySales')}</span>
+              <span className="text-2xl font-mono font-bold text-white tracking-tight block mt-1">
+                {todaySalesBags.toLocaleString()} <span className="text-xs font-sans font-normal text-slate-400 uppercase tracking-wider">bags</span>
+              </span>
+              <p className="text-[10px] text-emerald-400 mt-1 flex items-center gap-1 font-mono font-bold">
+                <DollarSign className="w-3 h-3" /> {currency}{todayRevenue.toLocaleString()} {language === 'en' ? 'Rev' : 'Kudi'}
+              </p>
+            </div>
           </div>
-          <div className="mt-4">
-            <span className="text-[10px] font-display font-bold uppercase tracking-wider text-slate-400 block">{t('todaySales')}</span>
-            <span className="text-2xl font-mono font-bold text-white tracking-tight block mt-1">
-              {todaySalesBags.toLocaleString()} <span className="text-xs font-sans font-normal text-slate-400 uppercase tracking-wider">bags</span>
-            </span>
-            <p className="text-[10px] text-emerald-400 mt-1 flex items-center gap-1 font-mono font-bold">
-              <DollarSign className="w-3 h-3" /> {currency}{todayRevenue.toLocaleString()} {language === 'en' ? 'Rev' : 'Kudi'}
-            </p>
-          </div>
-        </div>
+        )}
 
         {/* STAT 3: Finished Goods Stock */}
-        <div className="bg-slate-800 border border-slate-700/60 rounded-2xl p-4 flex flex-col justify-between hover:border-purple-500/50 transition-all shadow-lg group">
-          <div className="flex justify-between items-start">
-            <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-400">
-              <Layers className="w-5 h-5" />
+        {hasAccess('inventory') && (
+          <div className="bg-slate-800 border border-slate-700/60 rounded-2xl p-4 flex flex-col justify-between hover:border-purple-500/50 transition-all shadow-lg group">
+            <div className="flex justify-between items-start">
+              <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-400">
+                <Layers className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] text-slate-500 font-mono font-bold uppercase">{language === 'en' ? 'Active' : 'Akwai'}</span>
             </div>
-            <span className="text-[10px] text-slate-500 font-mono font-bold uppercase">{language === 'en' ? 'Active' : 'Akwai'}</span>
-          </div>
-          <div className="mt-4">
-            <span className="text-[10px] font-display font-bold uppercase tracking-wider text-slate-400 block">{t('currentStock')}</span>
-            <span className="text-2xl font-mono font-bold text-white tracking-tight block mt-1">
-              {currentStockBags.toLocaleString()} <span className="text-xs font-sans font-normal text-slate-400 uppercase tracking-wider">bags</span>
-            </span>
-            <div className="w-full bg-slate-700 h-1.5 rounded-full mt-2.5 overflow-hidden">
-              <div 
-                className="bg-purple-500 h-full rounded-full transition-all" 
-                style={{ width: `${Math.min(100, (currentStockBags / 5000) * 100)}%` }}
-              ></div>
+            <div className="mt-4">
+              <span className="text-[10px] font-display font-bold uppercase tracking-wider text-slate-400 block">{t('currentStock')}</span>
+              <span className="text-2xl font-mono font-bold text-white tracking-tight block mt-1">
+                {currentStockBags.toLocaleString()} <span className="text-xs font-sans font-normal text-slate-400 uppercase tracking-wider">bags</span>
+              </span>
+              <div className="w-full bg-slate-700 h-1.5 rounded-full mt-2.5 overflow-hidden">
+                <div 
+                  className="bg-purple-500 h-full rounded-full transition-all" 
+                  style={{ width: `${Math.min(100, (currentStockBags / 5000) * 100)}%` }}
+                ></div>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* STAT 4: Nylon Film Available */}
-        <div className="bg-slate-800 border border-slate-700/60 rounded-2xl p-4 flex flex-col justify-between hover:border-amber-500/50 transition-all shadow-lg group">
-          <div className="flex justify-between items-start">
-            <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400">
-              <AlertTriangle className="w-5 h-5" />
+        {hasAccess('inventory') && (
+          <div className="bg-slate-800 border border-slate-700/60 rounded-2xl p-4 flex flex-col justify-between hover:border-amber-500/50 transition-all shadow-lg group">
+            <div className="flex justify-between items-start">
+              <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] text-slate-500 font-mono font-bold uppercase">{language === 'en' ? 'Raw Materials' : 'Kayan Tace'}</span>
             </div>
-            <span className="text-[10px] text-slate-500 font-mono font-bold uppercase">{language === 'en' ? 'Raw Materials' : 'Kayan Tace'}</span>
+            <div className="mt-4">
+              <span className="text-[10px] font-display font-bold uppercase tracking-wider text-slate-400 block">{t('nylonRemaining')}</span>
+              <span className="text-2xl font-mono font-bold text-white tracking-tight block mt-1">
+                {nylonRemainingKg.toLocaleString()} <span className="text-xs font-sans font-normal text-slate-400 uppercase tracking-wider">kg</span>
+              </span>
+              <p className="text-[10px] font-mono text-slate-400 mt-1">
+                {language === 'en' ? 'Equivalent to' : 'Daidai yake da'} <span className="text-amber-400 font-bold">{nylonRemainingKg * 100}</span> bags
+              </p>
+            </div>
           </div>
-          <div className="mt-4">
-            <span className="text-[10px] font-display font-bold uppercase tracking-wider text-slate-400 block">{t('nylonRemaining')}</span>
-            <span className="text-2xl font-mono font-bold text-white tracking-tight block mt-1">
-              {nylonRemainingKg.toLocaleString()} <span className="text-xs font-sans font-normal text-slate-400 uppercase tracking-wider">kg</span>
-            </span>
-            <p className="text-[10px] font-mono text-slate-400 mt-1">
-              {language === 'en' ? 'Equivalent to' : 'Daidai yake da'} <span className="text-amber-400 font-bold">{nylonRemainingKg * 100}</span> bags
-            </p>
-          </div>
-        </div>
+        )}
 
       </div>
 
@@ -326,48 +376,56 @@ export default function Dashboard({
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         
         {/* Returns */}
-        <div className="bg-slate-800/60 border border-slate-700/40 rounded-xl p-3.5 flex items-center justify-between">
-          <div>
-            <span className="text-[10px] uppercase font-display font-bold text-slate-500 tracking-wider block">{t('returnedWater')}</span>
-            <span className="text-lg font-mono font-bold text-white mt-1 block">{totalReturnedBags} bags</span>
+        {hasAccess('returns') && (
+          <div className="bg-slate-800/60 border border-slate-700/40 rounded-xl p-3.5 flex items-center justify-between">
+            <div>
+              <span className="text-[10px] uppercase font-display font-bold text-slate-500 tracking-wider block">{t('returnedWater')}</span>
+              <span className="text-lg font-mono font-bold text-white mt-1 block">{totalReturnedBags} bags</span>
+            </div>
+            <div className="p-2 rounded-lg bg-orange-500/10 text-orange-400">
+              <RotateCcw className="w-4 h-4" />
+            </div>
           </div>
-          <div className="p-2 rounded-lg bg-orange-500/10 text-orange-400">
-            <RotateCcw className="w-4 h-4" />
-          </div>
-        </div>
+        )}
 
         {/* Leakage */}
-        <div className="bg-slate-800/60 border border-slate-700/40 rounded-xl p-3.5 flex items-center justify-between">
-          <div>
-            <span className="text-[10px] uppercase font-display font-bold text-slate-500 tracking-wider block">{t('leakedWater')}</span>
-            <span className="text-lg font-mono font-bold text-white mt-1 block">{totalLeakedBags} bags</span>
+        {hasAccess('leakages') && (
+          <div className="bg-slate-800/60 border border-slate-700/40 rounded-xl p-3.5 flex items-center justify-between">
+            <div>
+              <span className="text-[10px] uppercase font-display font-bold text-slate-500 tracking-wider block">{t('leakedWater')}</span>
+              <span className="text-lg font-mono font-bold text-white mt-1 block">{totalLeakedBags} bags</span>
+            </div>
+            <div className="p-2 rounded-lg bg-red-500/10 text-red-400">
+              <TrendingDown className="w-4 h-4" />
+            </div>
           </div>
-          <div className="p-2 rounded-lg bg-red-500/10 text-red-400">
-            <TrendingDown className="w-4 h-4" />
-          </div>
-        </div>
+        )}
 
         {/* Customers Owing */}
-        <div className="bg-slate-800/60 border border-slate-700/40 rounded-xl p-3.5 flex items-center justify-between">
-          <div>
-            <span className="text-[10px] uppercase font-display font-bold text-slate-500 tracking-wider block">{t('customersOwing')}</span>
-            <span className="text-lg font-display font-bold text-white mt-1 block">{customersOwingCount} {language === 'en' ? 'Buyers' : 'Masu bashi'}</span>
+        {hasAccess('customers') && (
+          <div className="bg-slate-800/60 border border-slate-700/40 rounded-xl p-3.5 flex items-center justify-between">
+            <div>
+              <span className="text-[10px] uppercase font-display font-bold text-slate-500 tracking-wider block">{t('customersOwing')}</span>
+              <span className="text-lg font-display font-bold text-white mt-1 block">{customersOwingCount} {language === 'en' ? 'Buyers' : 'Masu bashi'}</span>
+            </div>
+            <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400">
+              <UserCheck className="w-4 h-4" />
+            </div>
           </div>
-          <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400">
-            <UserCheck className="w-4 h-4" />
-          </div>
-        </div>
+        )}
 
         {/* Debt Amount */}
-        <div className="bg-slate-800/60 border border-slate-700/40 rounded-xl p-3.5 flex items-center justify-between">
-          <div>
-            <span className="text-[10px] uppercase font-display font-bold text-slate-500 tracking-wider block">{language === 'en' ? 'Total Outstanding Debt' : 'Jimlar Kudin Bashi'}</span>
-            <span className="text-lg font-mono font-bold text-rose-400 mt-1 block">₦{totalOutstandingAmount.toLocaleString()}</span>
+        {hasAccess('sales') && (
+          <div className="bg-slate-800/60 border border-slate-700/40 rounded-xl p-3.5 flex items-center justify-between">
+            <div>
+              <span className="text-[10px] uppercase font-display font-bold text-slate-500 tracking-wider block">{language === 'en' ? 'Total Outstanding Debt' : 'Jimlar Kudin Bashi'}</span>
+              <span className="text-lg font-mono font-bold text-rose-400 mt-1 block">₦{totalOutstandingAmount.toLocaleString()}</span>
+            </div>
+            <div className="p-2 rounded-lg bg-rose-500/10 text-rose-400">
+              <ShieldAlert className="w-4 h-4" />
+            </div>
           </div>
-          <div className="p-2 rounded-lg bg-rose-500/10 text-rose-400">
-            <ShieldAlert className="w-4 h-4" />
-          </div>
-        </div>
+        )}
 
       </div>
 
@@ -375,97 +433,115 @@ export default function Dashboard({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Left 2 Columns: Multi-Chart Visualization */}
-        <div className="lg:col-span-2 bg-slate-800 border border-slate-700/60 rounded-2xl p-5 flex flex-col justify-between shadow-xl">
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <h3 className="text-sm font-bold text-white">
-                  {language === 'en' ? 'Factory Performance Index (6 Months)' : 'Alamar Aikin Masana\'anta (Wata 6)'}
-                </h3>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  {language === 'en' ? 'Comparison of monthly sales value versus production volume' : 'Kwatanta kudaden shiga da adadin ruwan da aka tace'}
-                </p>
+        {(hasAccess('sales') || hasAccess('production')) ? (
+          <div className="lg:col-span-2 bg-slate-800 border border-slate-700/60 rounded-2xl p-5 flex flex-col justify-between shadow-xl">
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h3 className="text-sm font-bold text-white">
+                    {language === 'en' ? 'Factory Performance Index (6 Months)' : 'Alamar Aikin Masana\'anta (Wata 6)'}
+                  </h3>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    {language === 'en' ? 'Comparison of monthly sales value versus production volume' : 'Kwatanta kudaden shiga da adadin ruwan da aka tace'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-4 text-[10px] font-bold">
+                  {hasAccess('sales') && (
+                    <span className="flex items-center gap-1.5 text-sky-400">
+                      <span className="w-2.5 h-2.5 rounded-sm bg-sky-500 block"></span> {language === 'en' ? 'Sales (₦)' : 'Tallace-tallace (₦)'}
+                    </span>
+                  )}
+                  {hasAccess('production') && (
+                    <span className="flex items-center gap-1.5 text-emerald-400">
+                      <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500 block"></span> {language === 'en' ? 'Production (Bags)' : 'Tace Ruwa (Bags)'}
+                    </span>
+                  )}
+                </div>
               </div>
-              <div className="flex items-center gap-4 text-[10px] font-bold">
-                <span className="flex items-center gap-1.5 text-sky-400">
-                  <span className="w-2.5 h-2.5 rounded-sm bg-sky-500 block"></span> {language === 'en' ? 'Sales (₦)' : 'Tallace-tallace (₦)'}
-                </span>
-                <span className="flex items-center gap-1.5 text-emerald-400">
-                  <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500 block"></span> {language === 'en' ? 'Production (Bags)' : 'Tace Ruwa (Bags)'}
-                </span>
+
+              {/* Custom Responsive High-Fidelity SVG Chart */}
+              <div className="relative w-full h-64 bg-slate-900/60 border border-slate-700/30 rounded-xl p-4 flex items-end justify-between gap-1 mt-2">
+                
+                {/* Y-Axis labels */}
+                <div className="absolute top-2 left-2 text-[8px] font-mono text-slate-500 flex flex-col justify-between h-52 pointer-events-none text-right">
+                  <span>{currency}{(maxSales/1000).toFixed(0)}k</span>
+                  <span>{currency}{((maxSales*0.6)/1000).toFixed(0)}k</span>
+                  <span>{currency}{((maxSales*0.3)/1000).toFixed(0)}k</span>
+                  <span>₦0</span>
+                </div>
+
+                {/* Grid Lines */}
+                <div className="absolute inset-0 flex flex-col justify-between p-4 pointer-events-none opacity-10">
+                  <div className="border-b border-white w-full"></div>
+                  <div className="border-b border-white w-full"></div>
+                  <div className="border-b border-white w-full"></div>
+                  <div className="border-b border-white w-full"></div>
+                </div>
+
+                {/* Chart Bars */}
+                <div className="w-full h-full flex items-end justify-around pl-10 z-10">
+                  {monthlySalesData.map((d, index) => {
+                    const salesHeightPercent = (d.sales / maxSales) * 80; // Scale to max 80% height
+                    const prodHeightPercent = (d.prod / maxProd) * 80;
+
+                    return (
+                      <div key={index} className="flex flex-col items-center group relative w-16">
+                        
+                        {/* Interactive Tooltip on Hover */}
+                        <div className="absolute bottom-full mb-2 bg-slate-950/95 border border-slate-700 text-slate-200 text-[10px] py-1.5 px-2.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-2xl z-20 w-32 flex flex-col gap-1">
+                          <span className="font-bold border-b border-slate-800 pb-0.5 text-white">{d.month} Statistics</span>
+                          {hasAccess('sales') && <span className="text-sky-400">Sales: {currency}{d.sales.toLocaleString()}</span>}
+                          {hasAccess('production') && <span className="text-emerald-400">Prod: {d.prod.toLocaleString()} Bags</span>}
+                        </div>
+
+                        {/* Bar columns container */}
+                        <div className="flex items-end gap-1.5 h-44 w-full justify-center">
+                          {/* Sales Bar */}
+                          {hasAccess('sales') && (
+                            <div 
+                              style={{ height: `${salesHeightPercent}%` }}
+                              className="w-4 bg-gradient-to-t from-sky-600 to-sky-400 rounded-t-sm transition-all duration-500 group-hover:brightness-125"
+                            ></div>
+                          )}
+                          {/* Production Bar */}
+                          {hasAccess('production') && (
+                            <div 
+                              style={{ height: `${prodHeightPercent}%` }}
+                              className="w-4 bg-gradient-to-t from-emerald-600 to-emerald-400 rounded-t-sm transition-all duration-500 group-hover:brightness-125"
+                            ></div>
+                          )}
+                        </div>
+
+                        <span className="text-[10px] font-mono text-slate-400 mt-2 block">{d.month}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+
               </div>
             </div>
 
-            {/* Custom Responsive High-Fidelity SVG Chart */}
-            <div className="relative w-full h-64 bg-slate-900/60 border border-slate-700/30 rounded-xl p-4 flex items-end justify-between gap-1 mt-2">
-              
-              {/* Y-Axis labels */}
-              <div className="absolute top-2 left-2 text-[8px] font-mono text-slate-500 flex flex-col justify-between h-52 pointer-events-none text-right">
-                <span>{currency}{(maxSales/1000).toFixed(0)}k</span>
-                <span>{currency}{((maxSales*0.6)/1000).toFixed(0)}k</span>
-                <span>{currency}{((maxSales*0.3)/1000).toFixed(0)}k</span>
-                <span>₦0</span>
-              </div>
-
-              {/* Grid Lines */}
-              <div className="absolute inset-0 flex flex-col justify-between p-4 pointer-events-none opacity-10">
-                <div className="border-b border-white w-full"></div>
-                <div className="border-b border-white w-full"></div>
-                <div className="border-b border-white w-full"></div>
-                <div className="border-b border-white w-full"></div>
-              </div>
-
-              {/* Chart Bars */}
-              <div className="w-full h-full flex items-end justify-around pl-10 z-10">
-                {monthlySalesData.map((d, index) => {
-                  const salesHeightPercent = (d.sales / maxSales) * 80; // Scale to max 80% height
-                  const prodHeightPercent = (d.prod / maxProd) * 80;
-
-                  return (
-                    <div key={index} className="flex flex-col items-center group relative w-16">
-                      
-                      {/* Interactive Tooltip on Hover */}
-                      <div className="absolute bottom-full mb-2 bg-slate-950/95 border border-slate-700 text-slate-200 text-[10px] py-1.5 px-2.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-2xl z-20 w-32 flex flex-col gap-1">
-                        <span className="font-bold border-b border-slate-800 pb-0.5 text-white">{d.month} Statistics</span>
-                        <span className="text-sky-400">Sales: {currency}{d.sales.toLocaleString()}</span>
-                        <span className="text-emerald-400">Prod: {d.prod.toLocaleString()} Bags</span>
-                      </div>
-
-                      {/* Bar columns container */}
-                      <div className="flex items-end gap-1.5 h-44 w-full justify-center">
-                        {/* Sales Bar */}
-                        <div 
-                          style={{ height: `${salesHeightPercent}%` }}
-                          className="w-4 bg-gradient-to-t from-sky-600 to-sky-400 rounded-t-sm transition-all duration-500 group-hover:brightness-125"
-                        ></div>
-                        {/* Production Bar */}
-                        <div 
-                          style={{ height: `${prodHeightPercent}%` }}
-                          className="w-4 bg-gradient-to-t from-emerald-600 to-emerald-400 rounded-t-sm transition-all duration-500 group-hover:brightness-125"
-                        ></div>
-                      </div>
-
-                      <span className="text-[10px] font-mono text-slate-400 mt-2 block">{d.month}</span>
-                    </div>
-                  );
-                })}
-              </div>
-
+            <div className="mt-4 pt-4 border-t border-slate-700/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <span className="text-xs text-slate-400 leading-tight font-sans">
+                {language === 'en' ? 'Calculated conversion efficiency rate:' : 'Adadin aiki na canza leda zuwa jaka:'} <strong className="text-emerald-400 font-bold font-mono">98.4%</strong>
+              </span>
+              {hasAccess('reports') && (
+                <button 
+                  onClick={() => onNavigate('reports')}
+                  className="text-xs text-sky-400 hover:text-sky-300 font-display font-semibold flex items-center gap-1 cursor-pointer tracking-wider uppercase"
+                >
+                  {language === 'en' ? 'Open Full Reports Suite' : 'Duba Rahotanni gaba-daya'} <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           </div>
-
-          <div className="mt-4 pt-4 border-t border-slate-700/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-            <span className="text-xs text-slate-400 leading-tight font-sans">
-              {language === 'en' ? 'Calculated conversion efficiency rate:' : 'Adadin aiki na canza leda zuwa jaka:'} <strong className="text-emerald-400 font-bold font-mono">98.4%</strong>
-            </span>
-            <button 
-              onClick={() => onNavigate('reports')}
-              className="text-xs text-sky-400 hover:text-sky-300 font-display font-semibold flex items-center gap-1 cursor-pointer tracking-wider uppercase"
-            >
-              {language === 'en' ? 'Open Full Reports Suite' : 'Duba Rahotanni gaba-daya'} <ChevronRight className="w-3.5 h-3.5" />
-            </button>
+        ) : (
+          <div className="lg:col-span-2 bg-slate-800 border border-slate-700/60 rounded-2xl p-6 flex flex-col items-center justify-center text-center shadow-xl">
+            <ShieldAlert className="w-10 h-10 text-slate-500 mb-2" />
+            <h4 className="text-sm font-bold text-slate-300">Operational Data Hidden</h4>
+            <p className="text-[11px] text-slate-500 mt-1">You do not have active clearance for Sales or Production analytics.</p>
           </div>
-        </div>
+        )}
 
         {/* Right 1 Column: Stock Alerts & Recent Transactions */}
         <div className="bg-slate-800 border border-slate-700/60 rounded-2xl p-5 flex flex-col justify-between shadow-xl">
@@ -499,33 +575,57 @@ export default function Dashboard({
             <h3 className="text-sm font-display font-bold uppercase tracking-wider text-white mb-2 pt-2 border-t border-slate-700/40">
               {language === 'en' ? 'Recent Transactions' : 'Harkokin Karshe'}
             </h3>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {sales.slice(0, 3).map((s) => (
-                <div key={s.id} className="text-xs p-2.5 rounded-lg bg-slate-900/40 border border-slate-700/30 flex justify-between items-center">
-                  <div>
-                    <span className="font-display font-semibold text-white block">{s.customerName}</span>
-                    <span className="text-[10px] font-mono text-slate-400 mt-0.5 block">{s.invoiceNumber} • {s.date}</span>
+            <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+              {unifiedRecentTransactions.map((txn, index) => (
+                <div key={txn.id + '-' + index} className="text-xs p-2.5 rounded-lg bg-slate-900/40 border border-slate-700/30 flex justify-between items-center hover:bg-slate-900/80 transition-all">
+                  <div className="flex items-center gap-2 max-w-[70%]">
+                    <div className={`p-1.5 rounded-lg ${
+                      txn.flow === 'inflow' ? 'bg-sky-500/10 text-sky-400' :
+                      txn.flow === 'debt_payment' ? 'bg-emerald-500/10 text-emerald-400' :
+                      'bg-rose-500/10 text-rose-400'
+                    }`}>
+                      {txn.flow === 'inflow' ? <ArrowUpRight className="w-3.5 h-3.5" /> :
+                       txn.flow === 'debt_payment' ? <ArrowUpRight className="w-3.5 h-3.5" /> :
+                       <ArrowUpRight className="w-3.5 h-3.5 rotate-90" />}
+                    </div>
+                    <div className="truncate">
+                      <span className="font-display font-semibold text-white block truncate">{txn.title}</span>
+                      <span className="text-[9px] font-mono text-slate-400 mt-0.5 block truncate">
+                        {txn.type === 'Sale' ? 'Invoice' : txn.type} • {txn.subtitle} • {txn.date}
+                      </span>
+                    </div>
                   </div>
                   <div className="text-right">
-                    <span className="font-mono font-bold text-white block">₦{s.totalAmount.toLocaleString()}</span>
-                    <span className={`text-[9px] font-display font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full mt-1 inline-block ${
-                      s.status === 'Paid' ? 'bg-emerald-500/15 text-emerald-400' :
-                      s.status === 'Partially Paid' ? 'bg-amber-500/15 text-amber-400' : 'bg-red-500/15 text-red-400'
+                    <span className={`font-mono font-bold block ${
+                      txn.flow === 'inflow' ? 'text-sky-400' :
+                      txn.flow === 'debt_payment' ? 'text-emerald-400' :
+                      'text-rose-400'
                     }`}>
-                      {s.status}
+                      {txn.flow === 'outflow' ? '-' : ''}{currency}{txn.amount.toLocaleString()}
+                    </span>
+                    <span className={`text-[8px] font-display font-bold uppercase tracking-wider px-1 rounded mt-1 inline-block ${
+                      txn.status === 'Paid' ? 'bg-emerald-500/15 text-emerald-400' :
+                      txn.status === 'Partially Paid' ? 'bg-amber-500/15 text-amber-400' : 'bg-rose-500/15 text-rose-400'
+                    }`}>
+                      {txn.status}
                     </span>
                   </div>
                 </div>
               ))}
+              {unifiedRecentTransactions.length === 0 && (
+                <p className="text-center py-4 text-xs text-slate-500">No transactions recorded yet.</p>
+              )}
             </div>
           </div>
 
-          <button 
-            onClick={() => onNavigate('sales')}
-            className="w-full bg-slate-700/40 hover:bg-slate-700 text-slate-300 font-semibold text-xs py-2.5 rounded-xl transition-all border border-slate-600/30 cursor-pointer text-center block mt-4"
-          >
-            {language === 'en' ? 'View Sales Ledger' : 'Duba Shagon Tallace-tallace'}
-          </button>
+          {hasAccess('financials') && (
+            <button 
+              onClick={() => onNavigate('financials')}
+              className="w-full bg-slate-700/40 hover:bg-slate-700 text-slate-300 font-semibold text-xs py-2.5 rounded-xl transition-all border border-slate-600/30 cursor-pointer text-center block mt-4"
+            >
+              {language === 'en' ? 'View Unified Financial Ledger' : 'Duba Daftarin Kudi'}
+            </button>
+          )}
         </div>
 
       </div>
