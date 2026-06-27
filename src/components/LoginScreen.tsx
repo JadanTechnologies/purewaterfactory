@@ -54,7 +54,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4" id="login-container">
+    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4" id="login-container">
       <div className="w-full max-w-4xl bg-slate-800 rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden flex flex-col md:flex-row transition-all duration-300">
         
         {/* Left pane: Branding & Concept */}
@@ -206,6 +206,9 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
             </form>
           )}
         </div>
+      </div>
+      <div className="mt-6 text-center text-slate-500 text-xs font-mono tracking-wider" id="developer-credit-footer">
+        Developed by <span className="text-slate-400 font-semibold hover:text-sky-400 transition-colors">Jadan Tech Solutions Nig Ltd</span>: <span className="text-sky-500/80">07061511390</span>
       </div>
     </div>
   );

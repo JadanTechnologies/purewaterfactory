@@ -59,6 +59,56 @@ export default function SalesModule({
 
   const canWrite = activeRole === 'Administrator' || activeRole === 'Factory Manager' || activeRole === 'Sales Officer' || activeRole === 'Sales & Cashier Officer';
 
+  const playBellAlarm = () => {
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextClass) return;
+      const ctx = new AudioContextClass();
+      const now = ctx.currentTime;
+      
+      const playTone = (freq: number, start: number, duration: number) => {
+        const osc = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, start);
+        gainNode.gain.setValueAtTime(0.25, start);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+        osc.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        osc.start(start);
+        osc.stop(start + duration);
+      };
+
+      // Play dynamic bell chime sound
+      playTone(880, now, 0.4);
+      playTone(1320, now + 0.04, 0.4);
+      playTone(880, now + 0.18, 0.4);
+      playTone(1320, now + 0.22, 0.4);
+    } catch (e) {
+      console.warn("Audio Context error:", e);
+    }
+  };
+
+  const speakPatronageMessage = () => {
+    try {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const msg = new SpeechSynthesisUtterance("Invoice is printed, thank you for your patronage");
+        msg.rate = 0.95;
+        msg.pitch = 1.0;
+        window.speechSynthesis.speak(msg);
+      }
+    } catch (e) {
+      console.warn("Speech synthesis error:", e);
+    }
+  };
+
+  const handlePrint = () => {
+    playBellAlarm();
+    speakPatronageMessage();
+    window.print();
+  };
+
   const totalAmount = quantityBags * unitPrice;
 
   const handleCustomerChange = (custId: string) => {
@@ -446,10 +496,16 @@ export default function SalesModule({
               <div><strong>STATUS     :</strong> {selectedInvoice.status.toUpperCase()}</div>
             </div>
 
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '9.5px', margin: '10px 0', fontFamily: 'monospace' }}>
+            <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', fontSize: '9.5px', margin: '10px 0', fontFamily: 'monospace' }}>
+              <colgroup>
+                <col style={{ width: '45%' }} />
+                <col style={{ width: '15%' }} />
+                <col style={{ width: '20%' }} />
+                <col style={{ width: '20%' }} />
+              </colgroup>
               <thead>
                 <tr style={{ borderBottom: '1px dashed #000', fontWeight: 'bold' }}>
-                  <th style={{ textAlign: 'left', paddingBottom: '4px' }}>ITEM DESCRIPTION</th>
+                  <th style={{ textAlign: 'left', paddingBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>ITEM DESCRIPTION</th>
                   <th style={{ textAlign: 'center', paddingBottom: '4px' }}>QTY</th>
                   <th style={{ textAlign: 'right', paddingBottom: '4px' }}>PRICE</th>
                   <th style={{ textAlign: 'right', paddingBottom: '4px' }}>TOTAL</th>
@@ -457,13 +513,13 @@ export default function SalesModule({
               </thead>
               <tbody>
                 <tr style={{ borderBottom: '1px dashed #000' }}>
-                  <td style={{ paddingTop: '6px', paddingBottom: '6px' }}>
-                    PURE WATER BAGS<br />
-                    <span style={{ fontSize: '8px', color: '#333' }}>20 Sachet (0.5L)</span>
+                  <td style={{ paddingTop: '6px', paddingBottom: '6px', wordBreak: 'break-all', overflow: 'hidden' }}>
+                    <strong>PURE WATER BAGS</strong><br />
+                    <span style={{ fontSize: '8px', color: '#555' }}>20 Sachet (0.5L)</span>
                   </td>
-                  <td style={{ textAlign: 'center', paddingTop: '6px', paddingBottom: '6px' }}>{selectedInvoice.quantityBags}</td>
-                  <td style={{ textAlign: 'right', paddingTop: '6px', paddingBottom: '6px' }}>₦{selectedInvoice.unitPrice}</td>
-                  <td style={{ textAlign: 'right', paddingTop: '6px', paddingBottom: '6px' }}>₦{selectedInvoice.totalAmount.toLocaleString()}</td>
+                  <td style={{ textAlign: 'center', paddingTop: '6px', paddingBottom: '6px', verticalAlign: 'top' }}>{selectedInvoice.quantityBags}</td>
+                  <td style={{ textAlign: 'right', paddingTop: '6px', paddingBottom: '6px', verticalAlign: 'top' }}>₦{selectedInvoice.unitPrice}</td>
+                  <td style={{ textAlign: 'right', paddingTop: '6px', paddingBottom: '6px', verticalAlign: 'top' }}>₦{selectedInvoice.totalAmount.toLocaleString()}</td>
                 </tr>
               </tbody>
             </table>
@@ -613,9 +669,7 @@ export default function SalesModule({
 
                   <div className="space-y-2">
                     <button
-                      onClick={() => {
-                        window.print();
-                      }}
+                      onClick={handlePrint}
                       className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-display font-bold text-[10.5px] rounded-xl cursor-pointer flex items-center justify-center gap-1.5 transition-all uppercase tracking-wider shadow-md"
                     >
                       <Printer className="w-4 h-4" /> Print Thermal POS
