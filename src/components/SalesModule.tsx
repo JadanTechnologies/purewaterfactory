@@ -463,7 +463,7 @@ export default function SalesModule({
         <>
           {/* Hidden POS Thermal Receipt for Browser window.print() */}
           {createPortal(
-            <div id="pos-print-section" className="hidden" style={{ color: '#000', backgroundColor: '#fff' }}>
+            <>
             <div style={{ textAlign: 'center', marginBottom: '12px' }}>
               {settings?.logoUrl && (
                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '6px' }}>
@@ -578,8 +578,8 @@ export default function SalesModule({
               </p>
               <p style={{ marginTop: '6px', fontSize: '7.5px', color: '#777' }}>PWFMS Enterprise Cloud Run v1.4</p>
             </div>
-          </div>,
-          document.body
+            </>,
+            document.getElementById('pos-print-section')!
           )}
 
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">

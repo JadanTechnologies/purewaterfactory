@@ -7,6 +7,11 @@
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
+/* Hide POS print section in screen view */
+#pos-print-section {
+  display: none;
+}
+
 /* @media print CSS for high-fidelity 80mm POS receipt printing */
 @media print {
   /* Set page format for 80mm roll */
