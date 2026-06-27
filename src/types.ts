@@ -168,6 +168,21 @@ export interface DeliveryNote {
   status: 'Delivered' | 'Pending' | 'Returned';
 }
 
+export interface CustomRole {
+  id: string;
+  name: string;
+  allowedModules: string[]; // List of module names, e.g. ['dashboard', 'sales']
+}
+
+export interface UserAccount {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  role: string; // can be standard or custom role name
+  password?: string;
+}
+
 export interface AuditLog {
   id: string;
   timestamp: string;

@@ -6,28 +6,21 @@
 import React, { useState } from 'react';
 import { Shield, Key, Droplet, Users, Lock } from 'lucide-react';
 import { UserRole } from '../types';
+import { db } from '../db';
 
 interface LoginScreenProps {
-  onLogin: (role: UserRole, name: string) => void;
+  onLogin: (role: string, name: string) => void;
 }
 
 export default function LoginScreen({ onLogin }: LoginScreenProps) {
-  const [selectedRole, setSelectedRole] = useState<UserRole>('Administrator');
+  const usersList = db.getUsers();
+  
+  const [selectedUserId, setSelectedUserId] = useState(usersList[0]?.id || 'usr-1');
   const [password, setPassword] = useState('password123');
   const [error, setError] = useState('');
   const [showForgot, setShowForgot] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotSuccess, setForgotSuccess] = useState('');
-
-  // Pre-configured users for easier evaluation
-  const demoUsers = [
-    { role: 'Administrator' as UserRole, name: 'Adamu Ibrahim', desc: 'Manage system, settings, views, and users' },
-    { role: 'Factory Manager' as UserRole, name: 'Garba Shehu', desc: 'Oversee production, inventory, sales, & reports' },
-    { role: 'Production Officer' as UserRole, name: 'Shehu Garba', desc: 'Log batch runs, material used, and losses' },
-    { role: 'Sales Officer' as UserRole, name: 'Maryam Yusuf', desc: 'Record invoices, manage customers & returns' },
-    { role: 'Store Keeper' as UserRole, name: 'Abubakar Sani', desc: 'Audit raw materials, physical stock, & goods' },
-    { role: 'Cashier' as UserRole, name: 'Kabir Aliyu', desc: 'Log client ledger payments & operation expenses' }
-  ];
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,9 +28,15 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
       setError('Please enter your password.');
       return;
     }
-    const user = demoUsers.find(u => u.role === selectedRole);
+    const user = usersList.find(u => u.id === selectedUserId);
     if (user) {
-      onLogin(selectedRole, user.name);
+      if (user.password && password !== user.password) {
+        setError('Incorrect password. Please verify security key.');
+        return;
+      }
+      onLogin(user.role, user.name);
+    } else {
+      setError('Selected user not found.');
     }
   };
 
@@ -95,32 +94,35 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
                 <p className="text-slate-400 text-sm font-sans">Select your workspace role to begin session.</p>
               </div>
 
-              {/* Grid of Roles to Quick-Select (Highly Interactive & Evaluative Friendly) */}
+              {/* Grid of Users to Select */}
               <div className="space-y-2">
                 <label className="text-xs font-display font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                  <Users className="w-3.5 h-3.5 text-sky-400" /> Access Privilege Level
+                  <Users className="w-3.5 h-3.5 text-sky-400" /> Authorized User Account
                 </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {demoUsers.map((u) => (
+                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+                  {usersList.map((u) => (
                     <button
-                      key={u.role}
+                      key={u.id}
                       type="button"
                       onClick={() => {
-                        setSelectedRole(u.role);
+                        setSelectedUserId(u.id);
                         setError('');
                       }}
                       className={`text-left p-3 rounded-xl border text-xs transition-all duration-200 cursor-pointer ${
-                        selectedRole === u.role
+                        selectedUserId === u.id
                           ? 'border-sky-500 bg-sky-500/10 text-white shadow-md'
                           : 'border-slate-700 bg-slate-900/40 text-slate-300 hover:bg-slate-700/40 hover:border-slate-600'
                       }`}
-                      id={`role-btn-${u.role.toLowerCase().replace(' ', '-')}`}
+                      id={`user-btn-${u.id}`}
                     >
                       <div className="font-display font-bold flex items-center justify-between tracking-wide">
-                        {u.role}
-                        {selectedRole === u.role && <div className="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></div>}
+                        <span className="truncate max-w-[120px]">{u.name}</span>
+                        {selectedUserId === u.id && <div className="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></div>}
                       </div>
-                      <p className="text-[10px] text-slate-400 mt-1 font-sans line-clamp-1">{u.desc}</p>
+                      <div className="flex justify-between items-center mt-1 text-[9px] text-slate-400 font-sans">
+                        <span className="bg-slate-800 px-1.5 py-0.5 rounded text-sky-400 font-mono font-bold uppercase">{u.role}</span>
+                        <span className="truncate max-w-[80px]">{u.email}</span>
+                      </div>
                     </button>
                   ))}
                 </div>

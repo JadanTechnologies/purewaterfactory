@@ -46,7 +46,9 @@ import {
   DeliveryNote, 
   AuditLog, 
   NotificationItem, 
-  FactorySettings 
+  FactorySettings,
+  UserAccount,
+  CustomRole 
 } from './types';
 
 // Importing modules
@@ -125,7 +127,7 @@ export default function App() {
 
   // Auth & Roles state
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentUser, setCurrentUser] = useState({ name: '', role: 'Administrator' as UserRole });
+  const [currentUser, setCurrentUser] = useState({ name: '', role: 'Administrator' as string });
   const [activeModule, setActiveModule] = useState('dashboard');
   
   // Theme state
@@ -156,6 +158,8 @@ export default function App() {
   const [attendance, setAttendance] = useState(() => db.getAttendance());
   const [deliveries, setDeliveries] = useState(() => db.getDeliveries());
   const [notifications, setNotifications] = useState<NotificationItem[]>(() => db.getNotifications());
+  const [users, setUsers] = useState<UserAccount[]>(() => db.getUsers());
+  const [roles, setRoles] = useState<CustomRole[]>(() => db.getRoles());
 
   const language = settings.language;
 
@@ -180,17 +184,19 @@ export default function App() {
     setAttendance(db.getAttendance());
     setDeliveries(db.getDeliveries());
     setNotifications(db.getNotifications());
+    setUsers(db.getUsers());
+    setRoles(db.getRoles());
   };
 
-  const handleLogin = (role: UserRole, name: string) => {
+  const handleLogin = (role: string, name: string) => {
     setCurrentUser({ name, role });
     setIsLoggedIn(true);
-    db.addAudit(role, 'Sign In', `User ${name} authenticated successfully.`);
+    db.addAudit(role as any, 'Sign In', `User ${name} authenticated successfully.`);
     syncDatabaseStates();
   };
 
   const handleLogout = () => {
-    db.addAudit(currentUser.role, 'Sign Out', `User ${currentUser.name} logged out.`);
+    db.addAudit(currentUser.role as any, 'Sign Out', `User ${currentUser.name} logged out.`);
     setIsLoggedIn(false);
   };
 
@@ -260,6 +266,26 @@ export default function App() {
     syncDatabaseStates();
   };
 
+  const handleSaveUser = (user: UserAccount) => {
+    db.saveUser(user);
+    syncDatabaseStates();
+  };
+
+  const handleDeleteUser = (id: string) => {
+    db.deleteUser(id);
+    syncDatabaseStates();
+  };
+
+  const handleSaveRole = (role: CustomRole) => {
+    db.saveRole(role);
+    syncDatabaseStates();
+  };
+
+  const handleDeleteRole = (id: string) => {
+    db.deleteRole(id);
+    syncDatabaseStates();
+  };
+
   const handleNotificationsRead = () => {
     db.markNotificationsAsRead();
     setNotifications(db.getNotifications());
@@ -267,37 +293,37 @@ export default function App() {
   };
 
   // Quick switch active role mock tool (makes user testing of authorization rules highly delightful)
-  const handleQuickRoleSwitch = (role: UserRole) => {
-    const defaultNames: Record<UserRole, string> = {
-      'Administrator': 'Adamu Ibrahim',
-      'Factory Manager': 'Garba Shehu',
-      'Production Officer': 'Shehu Garba',
-      'Sales Officer': 'Maryam Yusuf',
-      'Store Keeper': 'Abubakar Sani',
-      'Cashier': 'Kabir Aliyu'
-    };
-    setCurrentUser({ role, name: defaultNames[role] });
-    db.addAudit(role, 'Role Hot Swap', `Swapped active workspace privilege to ${role}`);
+  const handleQuickRoleSwitch = (role: string) => {
+    const matchingUser = users.find(u => u.role === role);
+    const userName = matchingUser ? matchingUser.name : `Demo ${role}`;
+    setCurrentUser({ role, name: userName });
+    db.addAudit(role as any, 'Role Hot Swap', `Swapped active workspace privilege to ${role}`);
     syncDatabaseStates();
   };
 
   // Navigation panel access checker
   const hasAccess = (moduleName: string): boolean => {
-    const role = currentUser.role;
-    if (role === 'Administrator') return true;
-    if (role === 'Factory Manager') {
+    const roleName = currentUser.role;
+    // Check if dynamic role is defined in roles
+    const matchingRole = roles.find(r => r.id === roleName);
+    if (matchingRole) {
+      return matchingRole.allowedModules.includes(moduleName);
+    }
+
+    if (roleName === 'Administrator') return true;
+    if (roleName === 'Factory Manager') {
       return ['dashboard', 'production', 'inventory', 'sales', 'customers', 'returns', 'leakages', 'expenses', 'deliveries', 'financials', 'reports'].includes(moduleName);
     }
-    if (role === 'Production Officer') {
+    if (roleName === 'Production Officer') {
       return ['dashboard', 'production', 'leakages'].includes(moduleName);
     }
-    if (role === 'Sales Officer') {
+    if (roleName === 'Sales Officer') {
       return ['dashboard', 'sales', 'customers', 'returns', 'deliveries'].includes(moduleName);
     }
-    if (role === 'Store Keeper') {
+    if (roleName === 'Store Keeper') {
       return ['dashboard', 'inventory'].includes(moduleName);
     }
-    if (role === 'Cashier') {
+    if (roleName === 'Cashier') {
       return ['dashboard', 'customers', 'expenses', 'financials'].includes(moduleName);
     }
     return false;
@@ -436,20 +462,20 @@ export default function App() {
         <div className="flex items-center gap-3">
           
           {/* Quick privilege Switch tool (DELIGHTFUL FOR WORKSPACE REVIEWING) */}
-          <div className="hidden lg:flex items-center gap-1 bg-slate-950 border border-slate-800 p-1 rounded-xl">
-            <span className="text-[10px] text-slate-500 uppercase font-bold px-2">Role Switch:</span>
-            {(['Administrator', 'Factory Manager', 'Production Officer', 'Sales Officer', 'Store Keeper', 'Cashier'] as UserRole[]).map(role => (
+          <div className="hidden lg:flex items-center gap-1 bg-slate-950 border border-slate-800 p-1 rounded-xl max-w-lg overflow-x-auto">
+            <span className="text-[10px] text-slate-500 uppercase font-bold px-2 whitespace-nowrap">Role Switch:</span>
+            {roles.map(r => (
               <button
-                key={role}
-                onClick={() => handleQuickRoleSwitch(role)}
-                className={`text-[9px] font-bold px-2 py-1 rounded-lg transition-all cursor-pointer ${
-                  currentUser.role === role 
+                key={r.id}
+                onClick={() => handleQuickRoleSwitch(r.id)}
+                className={`text-[9px] font-bold px-2 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+                  currentUser.role === r.id 
                     ? 'bg-sky-600 text-white' 
                     : 'text-slate-400 hover:text-white'
                 }`}
-                title={`Hot-swap to ${role} view privileges`}
+                title={`Hot-swap to ${r.name} view privileges`}
               >
-                {role.split(' ')[0]}
+                {r.name.split(' ')[0]}
               </button>
             ))}
           </div>
@@ -608,15 +634,12 @@ export default function App() {
                 <span className="text-[9px] text-slate-500 font-bold uppercase block pl-1">Evaluate Active Role:</span>
                 <select
                   value={currentUser.role}
-                  onChange={(e) => handleQuickRoleSwitch(e.target.value as UserRole)}
+                  onChange={(e) => handleQuickRoleSwitch(e.target.value)}
                   className="w-full bg-slate-900 text-white border border-slate-800 rounded-lg py-1.5 px-2.5 text-xs focus:outline-none"
                 >
-                  <option value="Administrator">Administrator</option>
-                  <option value="Factory Manager">Factory Manager</option>
-                  <option value="Production Officer">Production Officer</option>
-                  <option value="Sales Officer">Sales Officer</option>
-                  <option value="Store Keeper">Store Keeper</option>
-                  <option value="Cashier">Cashier</option>
+                  {roles.map(r => (
+                    <option key={r.id} value={r.id}>{r.name}</option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -777,6 +800,12 @@ export default function App() {
                   onResetDatabase={db.reset}
                   onExportDatabase={db.exportDatabase}
                   onImportDatabase={db.importDatabase}
+                  users={users}
+                  roles={roles}
+                  onSaveUser={handleSaveUser}
+                  onDeleteUser={handleDeleteUser}
+                  onSaveRole={handleSaveRole}
+                  onDeleteRole={handleDeleteRole}
                 />
               )}
             </>

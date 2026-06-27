@@ -19,7 +19,9 @@ import {
   DeliveryNote, 
   AuditLog, 
   NotificationItem,
-  UserRole
+  UserRole,
+  UserAccount,
+  CustomRole
 } from './types';
 
 // Storage keys
@@ -38,7 +40,9 @@ const KEYS = {
   ATTENDANCE: 'pwfms_attendance',
   DELIVERIES: 'pwfms_deliveries',
   AUDIT_LOGS: 'pwfms_audit_logs',
-  NOTIFICATIONS: 'pwfms_notifications'
+  NOTIFICATIONS: 'pwfms_notifications',
+  USERS: 'pwfms_users',
+  ROLES: 'pwfms_roles'
 };
 
 const DEFAULT_SETTINGS: FactorySettings = {
@@ -53,6 +57,24 @@ const DEFAULT_SETTINGS: FactorySettings = {
   lowStockThresholdWater: 500, // bags
   language: 'en'
 };
+
+const DEFAULT_USERS: UserAccount[] = [
+  { id: 'usr-1', name: 'Adamu Ibrahim', email: 'admin@nile.com', phone: '+234 803 111 2222', role: 'Administrator', password: 'password123' },
+  { id: 'usr-2', name: 'Garba Shehu', email: 'manager@nile.com', phone: '+234 803 222 3333', role: 'Factory Manager', password: 'password123' },
+  { id: 'usr-3', name: 'Shehu Garba', email: 'production@nile.com', phone: '+234 803 333 4444', role: 'Production Officer', password: 'password123' },
+  { id: 'usr-4', name: 'Maryam Yusuf', email: 'sales@nile.com', phone: '+234 803 444 5555', role: 'Sales Officer', password: 'password123' },
+  { id: 'usr-5', name: 'Abubakar Sani', email: 'store@nile.com', phone: '+234 803 555 6666', role: 'Store Keeper', password: 'password123' },
+  { id: 'usr-6', name: 'Kabir Aliyu', email: 'cashier@nile.com', phone: '+234 803 666 7777', role: 'Cashier', password: 'password123' }
+];
+
+const DEFAULT_ROLES: CustomRole[] = [
+  { id: 'Administrator', name: 'Administrator', allowedModules: ['dashboard', 'production', 'inventory', 'sales', 'customers', 'returns', 'leakages', 'expenses', 'staff', 'deliveries', 'financials', 'reports', 'settings'] },
+  { id: 'Factory Manager', name: 'Factory Manager', allowedModules: ['dashboard', 'production', 'inventory', 'sales', 'customers', 'returns', 'leakages', 'expenses', 'deliveries', 'financials', 'reports'] },
+  { id: 'Production Officer', name: 'Production Officer', allowedModules: ['dashboard', 'production', 'leakages'] },
+  { id: 'Sales Officer', name: 'Sales Officer', allowedModules: ['dashboard', 'sales', 'customers', 'returns', 'deliveries'] },
+  { id: 'Store Keeper', name: 'Store Keeper', allowedModules: ['dashboard', 'inventory'] },
+  { id: 'Cashier', name: 'Cashier', allowedModules: ['dashboard', 'customers', 'expenses', 'financials'] }
+];
 
 export const INITIAL_INVENTORY: InventoryItem[] = [
   { id: 'inv-1', name: 'Raw Nylon Film (Standard)', category: 'Raw Materials', type: 'Nylon', quantity: 245, unit: 'kg', costPrice: 2100 },
@@ -181,6 +203,12 @@ export const db = {
     if (!localStorage.getItem(KEYS.AUDIT_LOGS)) {
       localStorage.setItem(KEYS.AUDIT_LOGS, JSON.stringify(INITIAL_AUDIT));
     }
+    if (!localStorage.getItem(KEYS.USERS)) {
+      localStorage.setItem(KEYS.USERS, JSON.stringify(DEFAULT_USERS));
+    }
+    if (!localStorage.getItem(KEYS.ROLES)) {
+      localStorage.setItem(KEYS.ROLES, JSON.stringify(DEFAULT_ROLES));
+    }
   },
 
   reset() {
@@ -198,6 +226,8 @@ export const db = {
     localStorage.setItem(KEYS.STOCK_MOVEMENTS, JSON.stringify(INITIAL_STOCK_MOVEMENTS));
     localStorage.setItem(KEYS.PAYMENTS, JSON.stringify(INITIAL_PAYMENTS));
     localStorage.setItem(KEYS.AUDIT_LOGS, JSON.stringify(INITIAL_AUDIT));
+    localStorage.setItem(KEYS.USERS, JSON.stringify(DEFAULT_USERS));
+    localStorage.setItem(KEYS.ROLES, JSON.stringify(DEFAULT_ROLES));
   },
 
   exportDatabase(): string {
@@ -650,5 +680,51 @@ export const db = {
         this.addNotification('stock', 'Low Pure Water Stock', `Finished water bags are at ${water.quantity} bags, which is below the threshold of ${settings.lowStockThresholdWater} bags.`);
       }
     }
+  },
+
+  // Users Management
+  getUsers(): UserAccount[] {
+    const u = localStorage.getItem(KEYS.USERS);
+    return u ? JSON.parse(u) : DEFAULT_USERS;
+  },
+  saveUser(user: UserAccount) {
+    const users = this.getUsers();
+    const idx = users.findIndex(u => u.id === user.id);
+    if (idx > -1) {
+      users[idx] = user;
+    } else {
+      users.push(user);
+    }
+    localStorage.setItem(KEYS.USERS, JSON.stringify(users));
+    this.addAudit('Administrator', 'Save User Account', `Saved user account ${user.name} (${user.role})`);
+  },
+  deleteUser(id: string) {
+    const users = this.getUsers();
+    const filtered = users.filter(u => u.id !== id);
+    localStorage.setItem(KEYS.USERS, JSON.stringify(filtered));
+    this.addAudit('Administrator', 'Delete User Account', `Deleted user account ID: ${id}`);
+  },
+
+  // Custom Roles Management
+  getRoles(): CustomRole[] {
+    const r = localStorage.getItem(KEYS.ROLES);
+    return r ? JSON.parse(r) : DEFAULT_ROLES;
+  },
+  saveRole(role: CustomRole) {
+    const roles = this.getRoles();
+    const idx = roles.findIndex(r => r.id === role.id);
+    if (idx > -1) {
+      roles[idx] = role;
+    } else {
+      roles.push(role);
+    }
+    localStorage.setItem(KEYS.ROLES, JSON.stringify(roles));
+    this.addAudit('Administrator', 'Save Custom Role', `Saved role ${role.name} with modules: ${role.allowedModules.join(', ')}`);
+  },
+  deleteRole(id: string) {
+    const roles = this.getRoles();
+    const filtered = roles.filter(r => r.id !== id);
+    localStorage.setItem(KEYS.ROLES, JSON.stringify(filtered));
+    this.addAudit('Administrator', 'Delete Custom Role', `Deleted custom role: ${id}`);
   }
 };
