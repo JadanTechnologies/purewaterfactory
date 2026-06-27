@@ -30,6 +30,7 @@ export interface FactorySettings {
   lowStockThresholdNylon: number; // kg
   lowStockThresholdWater: number; // bags
   language: 'en' | 'ha'; // English or Hausa
+  logoUrl?: string; // URL for factory logo
 }
 
 export interface ProductionBatch {

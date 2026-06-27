@@ -92,6 +92,7 @@ export default function SettingsModule({
   const [lowStockThresholdNylon, setLowStockThresholdNylon] = useState(settings.lowStockThresholdNylon);
   const [lowStockThresholdWater, setLowStockThresholdWater] = useState(settings.lowStockThresholdWater);
   const [activeLang, setActiveLang] = useState<'en' | 'ha'>(settings.language);
+  const [logoUrl, setLogoUrl] = useState(settings.logoUrl || '');
 
   // Custom roles editor state
   const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
@@ -129,7 +130,8 @@ export default function SettingsModule({
       taxRate,
       lowStockThresholdNylon,
       lowStockThresholdWater,
-      language: activeLang
+      language: activeLang,
+      logoUrl
     });
 
     alert('Factory configurations updated successfully.');
@@ -508,6 +510,36 @@ export default function SettingsModule({
                   onChange={(e) => setAddress(e.target.value)}
                   className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none disabled:opacity-50"
                 />
+              </div>
+
+              {/* Factory Logo URL */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-slate-400">Factory Logo (Image URL)</label>
+                <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                  <input
+                    type="url"
+                    disabled={!canWrite}
+                    value={logoUrl}
+                    onChange={(e) => setLogoUrl(e.target.value)}
+                    placeholder="e.g. https://images.unsplash.com/photo-1548345680-f5475ea5df84?q=80&w=200"
+                    className="flex-1 w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none disabled:opacity-50"
+                  />
+                  {logoUrl && (
+                    <div className="w-12 h-12 rounded-xl bg-slate-900 border border-slate-700 overflow-hidden flex items-center justify-center p-1.5 shrink-0">
+                      <img 
+                        src={logoUrl} 
+                        alt="Factory Logo" 
+                        referrerPolicy="no-referrer" 
+                        className="max-w-full max-h-full object-contain"
+                        onError={(e) => {
+                          // Handle broken image URL gracefully
+                          (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1548345680-f5475ea5df84?q=80&w=200';
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+                <p className="text-[10px] text-slate-500">Provide an image URL for the factory logo (e.g. PNG, JPG, or SVG). This logo will be automatically pulled into the POS thermal print layout.</p>
               </div>
 
               {canWrite && (

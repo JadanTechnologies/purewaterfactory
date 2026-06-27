@@ -696,6 +696,7 @@ export default function App() {
                   currency={settings.currency}
                   language={language}
                   onAddSale={addSale}
+                  settings={settings}
                 />
               )}
 

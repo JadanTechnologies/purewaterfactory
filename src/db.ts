@@ -55,7 +55,8 @@ const DEFAULT_SETTINGS: FactorySettings = {
   taxRate: 7.5,
   lowStockThresholdNylon: 50, // kg
   lowStockThresholdWater: 500, // bags
-  language: 'en'
+  language: 'en',
+  logoUrl: 'https://images.unsplash.com/photo-1548345680-f5475ea5df84?q=80&w=200&auto=format&fit=crop'
 };
 
 const DEFAULT_USERS: UserAccount[] = [

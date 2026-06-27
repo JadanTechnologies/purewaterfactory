@@ -17,7 +17,7 @@ import {
   Send,
   MessageSquare
 } from 'lucide-react';
-import { Sale, Customer, UserRole } from '../types';
+import { Sale, Customer, UserRole, FactorySettings } from '../types';
 
 interface SalesModuleProps {
   sales: Sale[];
@@ -26,6 +26,7 @@ interface SalesModuleProps {
   currency: string;
   language: 'en' | 'ha';
   onAddSale: (sale: Omit<Sale, 'id'>) => void;
+  settings?: FactorySettings;
 }
 
 export default function SalesModule({
@@ -34,7 +35,8 @@ export default function SalesModule({
   activeRole,
   currency,
   language,
-  onAddSale
+  onAddSale,
+  settings
 }: SalesModuleProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -411,11 +413,25 @@ export default function SalesModule({
           {/* Hidden POS Thermal Receipt for Browser window.print() */}
           <div id="pos-print-section" className="hidden" style={{ color: '#000', backgroundColor: '#fff' }}>
             <div style={{ textAlign: 'center', marginBottom: '12px' }}>
+              {settings?.logoUrl && (
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '6px' }}>
+                  <img 
+                    src={settings.logoUrl} 
+                    alt="Logo" 
+                    referrerPolicy="no-referrer" 
+                    style={{ maxHeight: '45px', maxWidth: '120px', objectFit: 'contain' }} 
+                  />
+                </div>
+              )}
               <h2 style={{ fontSize: '14px', fontWeight: '800', margin: '0 0 3px 0', letterSpacing: '1px', textTransform: 'uppercase', fontFamily: 'monospace' }}>
-                NILE PREMIUM WATER
+                {settings?.factoryName || 'NILE PREMIUM WATER'}
               </h2>
-              <p style={{ fontSize: '9px', margin: '2px 0', fontFamily: 'monospace' }}>Plot 42, Challawa Ind. Estate, Kano</p>
-              <p style={{ fontSize: '9px', margin: '2px 0', fontFamily: 'monospace' }}>Tel: +234 803 123 4567 | +234 905 987 6543</p>
+              <p style={{ fontSize: '9px', margin: '2px 0', fontFamily: 'monospace' }}>
+                {settings?.address || 'Plot 42, Challawa Ind. Estate, Kano'}
+              </p>
+              <p style={{ fontSize: '9px', margin: '2px 0', fontFamily: 'monospace' }}>
+                Tel: {settings?.phone || '+234 803 123 4567'} {settings?.email ? `| Email: ${settings.email}` : ''}
+              </p>
               <p style={{ fontSize: '10px', fontWeight: 'bold', borderTop: '1px dashed #000', borderBottom: '1px dashed #000', padding: '5px 0', margin: '10px 0 5px 0', textTransform: 'uppercase', fontFamily: 'monospace' }}>
                 * TRANSACTION INVOICE *
               </p>
@@ -488,9 +504,25 @@ export default function SalesModule({
               {/* Left Column: Visual Print Receipt layout */}
               <div className="flex-1 bg-white p-5 rounded-xl shadow-inner text-slate-900 font-mono text-[11px] leading-tight space-y-4 border-b-8 border-dashed border-slate-300" id="thermal-receipt-layout">
                 <div className="text-center border-b border-dashed border-slate-400 pb-3">
-                  <span className="font-extrabold text-xs block tracking-widest text-slate-950">NILE PREMIUM WATER</span>
-                  <span className="text-[9px] block text-slate-600 mt-1">Plot 42, Challawa Ind. Estate, Kano</span>
-                  <span className="text-[9px] block text-slate-600">Tel: +234 803 123 4567</span>
+                  {settings?.logoUrl && (
+                    <div className="flex justify-center mb-2">
+                      <img 
+                        src={settings.logoUrl} 
+                        alt="Logo" 
+                        referrerPolicy="no-referrer" 
+                        className="max-h-11 max-w-[120px] object-contain" 
+                      />
+                    </div>
+                  )}
+                  <span className="font-extrabold text-xs block tracking-widest text-slate-950">
+                    {settings?.factoryName || 'NILE PREMIUM WATER'}
+                  </span>
+                  <span className="text-[9px] block text-slate-600 mt-1">
+                    {settings?.address || 'Plot 42, Challawa Ind. Estate, Kano'}
+                  </span>
+                  <span className="text-[9px] block text-slate-600">
+                    Tel: {settings?.phone || '+234 803 123 4567'} {settings?.email ? `| ${settings.email}` : ''}
+                  </span>
                   <span className="text-[10px] font-bold block mt-2 border border-slate-800 py-0.5 rounded uppercase">TAX INVOICE / RECEIPT</span>
                 </div>
 
