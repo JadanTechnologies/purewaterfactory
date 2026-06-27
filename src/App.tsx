@@ -27,7 +27,9 @@ import {
   Lock,
   ArrowRight,
   UserCheck,
-  CheckCircle2
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 import { db } from './db';
@@ -66,6 +68,7 @@ import DeliveryModule from './components/DeliveryModule';
 import FinancialModule from './components/FinancialModule';
 import ReportsModule from './components/ReportsModule';
 import SettingsModule from './components/SettingsModule';
+import ProfileModal from './components/ProfileModal';
 
 // Translators
 const translationDictionary: Record<'en' | 'ha', Record<string, string>> = {
@@ -127,9 +130,14 @@ export default function App() {
 
   // Auth & Roles state
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentUser, setCurrentUser] = useState({ name: '', role: 'Administrator' as string });
+  const [currentUser, setCurrentUser] = useState<UserAccount>(() => {
+    const savedUsers = db.getUsers();
+    return savedUsers[0] || { id: 'usr-1', name: 'Adamu Ibrahim', email: 'admin@nile.com', phone: '+234 803 111 2222', role: 'Administrator', password: 'password123' };
+  });
   const [authenticatedRole, setAuthenticatedRole] = useState<string>('Administrator');
   const [activeModule, setActiveModule] = useState('dashboard');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   
   // Theme state
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
@@ -189,11 +197,11 @@ export default function App() {
     setRoles(db.getRoles());
   };
 
-  const handleLogin = (role: string, name: string) => {
-    setCurrentUser({ name, role });
-    setAuthenticatedRole(role);
+  const handleLogin = (user: UserAccount) => {
+    setCurrentUser(user);
+    setAuthenticatedRole(user.role);
     setIsLoggedIn(true);
-    db.addAudit(role as any, 'Sign In', `User ${name} authenticated successfully.`);
+    db.addAudit(user.role as any, 'Sign In', `User ${user.name} authenticated successfully.`);
     syncDatabaseStates();
   };
 
@@ -271,6 +279,17 @@ export default function App() {
 
   const handleSaveUser = (user: UserAccount) => {
     db.saveUser(user);
+    // If saving/updating current user from settings, sync current user state too
+    if (user.id === currentUser.id) {
+      setCurrentUser(user);
+    }
+    syncDatabaseStates();
+  };
+
+  const handleUpdateProfile = (updatedUser: UserAccount) => {
+    db.saveUser(updatedUser);
+    setCurrentUser(updatedUser);
+    db.addAudit(updatedUser.role as any, 'Update Profile', `User ${updatedUser.name} updated their personal profile credentials.`);
     syncDatabaseStates();
   };
 
@@ -302,8 +321,18 @@ export default function App() {
       return;
     }
     const matchingUser = users.find(u => u.role === role);
-    const userName = matchingUser ? matchingUser.name : `Demo ${role}`;
-    setCurrentUser({ role, name: userName });
+    if (matchingUser) {
+      setCurrentUser(matchingUser);
+    } else {
+      setCurrentUser({
+        id: `mock-${role.toLowerCase()}`,
+        name: `Demo ${role}`,
+        email: `demo-${role.toLowerCase()}@nile.com`,
+        phone: '',
+        role: role,
+        password: 'password123'
+      });
+    }
     db.addAudit(role as any, 'Role Hot Swap', `Swapped active workspace privilege to ${role}`);
     syncDatabaseStates();
   };
@@ -547,10 +576,20 @@ export default function App() {
 
           {/* Profile Sign-out dropdown */}
           <div className="flex items-center gap-2 border-l border-slate-800 pl-3">
-            <div className="hidden sm:block text-right">
-              <span className="text-xs font-bold text-white block truncate max-w-[110px]">{currentUser.name}</span>
-              <span className="text-[9px] text-slate-500 block uppercase font-bold tracking-wider">{currentUser.role}</span>
-            </div>
+            <button 
+              onClick={() => setShowProfileModal(true)}
+              className="flex items-center gap-2 text-left hover:bg-slate-800/50 p-1 px-2 rounded-xl transition-all cursor-pointer group"
+              title="Update Profile Credentials"
+              id="profile-trigger-btn"
+            >
+              <div className="p-1.5 bg-sky-500/10 text-sky-400 group-hover:bg-sky-500/20 rounded-lg transition-all">
+                <User className="w-3.5 h-3.5" />
+              </div>
+              <div className="hidden sm:block text-right">
+                <span className="text-xs font-bold text-white block truncate max-w-[110px] group-hover:text-sky-400 transition-colors">{currentUser.name}</span>
+                <span className="text-[9px] text-slate-500 block uppercase font-bold tracking-wider">{currentUser.role}</span>
+              </div>
+            </button>
             <button 
               onClick={handleLogout}
               className="p-2 bg-slate-800 hover:bg-slate-700 text-rose-400 rounded-xl transition-all cursor-pointer"
@@ -569,8 +608,17 @@ export default function App() {
       <div className="flex-1 flex overflow-hidden">
         
         {/* Desktop Sidebar */}
-        <aside className="hidden md:block w-60 bg-slate-900/60 border-r border-slate-800/80 p-4 space-y-2 sticky top-16 h-[calc(100vh-64px)] overflow-y-auto">
-          <span className="text-[10px] text-slate-500 uppercase font-extrabold tracking-wider pl-3 block mb-3">Privilege Navigation</span>
+        <aside className={`hidden md:block transition-all duration-300 ${isSidebarCollapsed ? 'w-16 p-2' : 'w-60 p-4'} bg-slate-900/60 border-r border-slate-800/80 space-y-2 sticky top-16 h-[calc(100vh-64px)] overflow-y-auto`}>
+          <div className="flex items-center justify-between mb-3 px-1">
+            {!isSidebarCollapsed && <span className="text-[10px] text-slate-500 uppercase font-extrabold tracking-wider pl-2 block">Privilege Navigation</span>}
+            <button
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              className="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg transition-all mx-auto cursor-pointer flex items-center justify-center"
+              title={isSidebarCollapsed ? "Expand Navigation" : "Collapse Navigation"}
+            >
+              {isSidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            </button>
+          </div>
           {navigationItems.filter(item => hasAccess(item.name)).map(item => {
             const Icon = item.icon;
             const active = activeModule === item.name;
@@ -581,18 +629,19 @@ export default function App() {
                 key={item.name}
                 disabled={!permitted}
                 onClick={() => setActiveModule(item.name)}
-                className={`w-full text-left py-2.5 px-3.5 rounded-xl font-semibold text-xs transition-all flex items-center gap-3 relative ${
+                className={`w-full py-2.5 px-3 rounded-xl font-semibold text-xs transition-all flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} relative ${
                   !permitted ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'
                 } ${
                   active 
                     ? 'bg-sky-600 text-white shadow-md' 
                     : 'text-slate-400 hover:bg-slate-900 hover:text-white'
                 }`}
+                title={isSidebarCollapsed ? item.label : undefined}
                 id={`sidebar-link-${item.name}`}
               >
-                <Icon className="w-4.5 h-4.5" />
-                <span>{item.label}</span>
-                {!permitted && <Lock className="w-3 h-3 absolute right-3 text-slate-600" />}
+                <Icon className="w-4.5 h-4.5 shrink-0" />
+                {!isSidebarCollapsed && <span className="truncate">{item.label}</span>}
+                {!permitted && !isSidebarCollapsed && <Lock className="w-3 h-3 absolute right-3 text-slate-600" />}
               </button>
             );
           })}
@@ -714,6 +763,7 @@ export default function App() {
                   language={language}
                   onAddSale={addSale}
                   settings={settings}
+                  currentUser={currentUser}
                 />
               )}
 
@@ -843,6 +893,14 @@ export default function App() {
         </main>
 
       </div>
+
+      <ProfileModal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+        currentUser={currentUser}
+        onSave={handleUpdateProfile}
+        language={language}
+      />
 
     </div>
   );

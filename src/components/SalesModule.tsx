@@ -18,7 +18,7 @@ import {
   Send,
   MessageSquare
 } from 'lucide-react';
-import { Sale, Customer, UserRole, FactorySettings } from '../types';
+import { Sale, Customer, UserRole, FactorySettings, UserAccount } from '../types';
 
 interface SalesModuleProps {
   sales: Sale[];
@@ -28,6 +28,7 @@ interface SalesModuleProps {
   language: 'en' | 'ha';
   onAddSale: (sale: Omit<Sale, 'id'>) => void;
   settings?: FactorySettings;
+  currentUser?: UserAccount;
 }
 
 export default function SalesModule({
@@ -37,7 +38,8 @@ export default function SalesModule({
   currency,
   language,
   onAddSale,
-  settings
+  settings,
+  currentUser
 }: SalesModuleProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -158,7 +160,7 @@ export default function SalesModule({
       date: today,
       customerId: selectedCustomerId,
       customerName: customer.name,
-      salesOfficer: activeRole, // using role as name for simulation
+      salesOfficer: currentUser ? currentUser.name : activeRole,
       quantityBags,
       unitPrice,
       totalAmount,

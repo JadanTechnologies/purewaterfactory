@@ -5,11 +5,11 @@
 
 import React, { useState } from 'react';
 import { Shield, Key, Droplet, Users, Lock } from 'lucide-react';
-import { UserRole } from '../types';
+import { UserRole, UserAccount } from '../types';
 import { db } from '../db';
 
 interface LoginScreenProps {
-  onLogin: (role: string, name: string) => void;
+  onLogin: (user: UserAccount) => void;
 }
 
 export default function LoginScreen({ onLogin }: LoginScreenProps) {
@@ -34,7 +34,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
         setError('Incorrect password. Please verify security key.');
         return;
       }
-      onLogin(user.role, user.name);
+      onLogin(user);
     } else {
       setError('Selected user not found.');
     }
@@ -94,37 +94,32 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
                 <p className="text-slate-400 text-sm font-sans">Select your workspace role to begin session.</p>
               </div>
 
-              {/* Grid of Users to Select */}
+              {/* Dropdown to Select User Account */}
               <div className="space-y-2">
                 <label className="text-xs font-display font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
                   <Users className="w-3.5 h-3.5 text-sky-400" /> Authorized User Account
                 </label>
-                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
-                  {usersList.map((u) => (
-                    <button
-                      key={u.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedUserId(u.id);
-                        setError('');
-                      }}
-                      className={`text-left p-3 rounded-xl border text-xs transition-all duration-200 cursor-pointer ${
-                        selectedUserId === u.id
-                          ? 'border-sky-500 bg-sky-500/10 text-white shadow-md'
-                          : 'border-slate-700 bg-slate-900/40 text-slate-300 hover:bg-slate-700/40 hover:border-slate-600'
-                      }`}
-                      id={`user-btn-${u.id}`}
-                    >
-                      <div className="font-display font-bold flex items-center justify-between tracking-wide">
-                        <span className="truncate max-w-[120px]">{u.name}</span>
-                        {selectedUserId === u.id && <div className="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></div>}
-                      </div>
-                      <div className="flex justify-between items-center mt-1 text-[9px] text-slate-400 font-sans">
-                        <span className="bg-slate-800 px-1.5 py-0.5 rounded text-sky-400 font-mono font-bold uppercase">{u.role}</span>
-                        <span className="truncate max-w-[80px]">{u.email}</span>
-                      </div>
-                    </button>
-                  ))}
+                <div className="relative">
+                  <select
+                    value={selectedUserId}
+                    onChange={(e) => {
+                      setSelectedUserId(e.target.value);
+                      setError('');
+                    }}
+                    className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-3 px-4 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-sky-500/40 focus:border-sky-500 transition-all duration-200 cursor-pointer appearance-none"
+                    id="user-select-dropdown"
+                  >
+                    {usersList.map((u) => (
+                      <option key={u.id} value={u.id} className="bg-slate-800 text-white py-2">
+                        {u.name} — {u.role} ({u.email})
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-slate-400">
+                    <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20">
+                      <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                    </svg>
+                  </div>
                 </div>
               </div>
 
