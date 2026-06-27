@@ -20,6 +20,12 @@ export interface User {
   phone: string;
 }
 
+export interface LockdownState {
+  lockdownEndDate: string | null;
+  isLocked: boolean;
+  unlockToken: string | null;
+}
+
 export interface FactorySettings {
   factoryName: string;
   address: string;
@@ -32,6 +38,7 @@ export interface FactorySettings {
   lowStockThresholdWater: number; // bags
   language: 'en' | 'ha'; // English or Hausa
   logoUrl?: string; // URL for factory logo
+  lockdownState?: LockdownState;
 }
 
 export interface ProductionBatch {

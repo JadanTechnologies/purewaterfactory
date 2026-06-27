@@ -21,7 +21,8 @@ import {
   NotificationItem,
   UserRole,
   UserAccount,
-  CustomRole
+  CustomRole,
+  LockdownState
 } from './types';
 
 // Storage keys
@@ -160,12 +161,25 @@ const INITIAL_AUDIT: AuditLog[] = [
   { id: 'audit-3', timestamp: '2026-06-26T16:45:00Z', user: 'Kabir Aliyu', role: 'Cashier', action: 'Receive Payment', details: 'Logged payment of ₦18,000 from Hajiya Amina Bello' }
 ];
 
+// Lockdown State keys
+const LOCKDOWN_KEY = 'pwfms_lockdown_state';
+const LOCKDOWN_DURATION_DAYS = 7;
+
+const DEFAULT_LOCKDOWN_STATE: LockdownState = {
+  lockdownEndDate: null,
+  isLocked: false,
+  unlockToken: null
+};
+
 // Database core
 export const db = {
   // Init
   init() {
     if (!localStorage.getItem(KEYS.SETTINGS)) {
       localStorage.setItem(KEYS.SETTINGS, JSON.stringify(DEFAULT_SETTINGS));
+    }
+    if (!localStorage.getItem(LOCKDOWN_KEY)) {
+      localStorage.setItem(LOCKDOWN_KEY, JSON.stringify(DEFAULT_LOCKDOWN_STATE));
     }
     if (!localStorage.getItem(KEYS.INVENTORY)) {
       localStorage.setItem(KEYS.INVENTORY, JSON.stringify(INITIAL_INVENTORY));
@@ -730,5 +744,63 @@ export const db = {
     const filtered = roles.filter(r => r.id !== id);
     localStorage.setItem(KEYS.ROLES, JSON.stringify(filtered));
     this.addAudit('Administrator', 'Delete Custom Role', `Deleted custom role: ${id}`);
+  },
+
+  // Lockdown State Management
+  getLockdownState(): LockdownState {
+    const ls = localStorage.getItem(LOCKDOWN_KEY);
+    return ls ? JSON.parse(ls) : { ...DEFAULT_LOCKDOWN_STATE };
+  },
+
+  activateLockdown() {
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + LOCKDOWN_DURATION_DAYS);
+    const state: LockdownState = {
+      lockdownEndDate: endDate.toISOString(),
+      isLocked: false,
+      unlockToken: null
+    };
+    localStorage.setItem(LOCKDOWN_KEY, JSON.stringify(state));
+    this.addAudit('Administrator', 'System Lockdown Activated', `System locked for ${LOCKDOWN_DURATION_DAYS} days. Lockdown ends: ${endDate.toDateString()}`);
+    return state;
+  },
+
+  checkLockdownExpired(): boolean {
+    const state = this.getLockdownState();
+    if (!state.lockdownEndDate) return false;
+    return new Date() >= new Date(state.lockdownEndDate);
+  },
+
+  lockSystem() {
+    const state = this.getLockdownState();
+    state.isLocked = true;
+    localStorage.setItem(LOCKDOWN_KEY, JSON.stringify(state));
+    this.addAudit('System', 'System Locked', 'System locked - awaiting developer token for unlock.');
+  },
+
+  unlockSystem(token: string) {
+    const state = this.getLockdownState();
+    state.isLocked = false;
+    state.lockdownEndDate = null;
+    state.unlockToken = null;
+    localStorage.setItem(LOCKDOWN_KEY, JSON.stringify(state));
+    this.addAudit('Administrator', 'System Unlocked', `System unlocked with valid developer token.`);
+    return true;
+  },
+
+  verifyUnlockToken(token: string): boolean {
+    const state = this.getLockdownState();
+    return state.unlockToken === token && token !== null;
+  },
+
+  setUnlockToken(token: string) {
+    const state = this.getLockdownState();
+    state.unlockToken = token;
+    localStorage.setItem(LOCKDOWN_KEY, JSON.stringify(state));
+  },
+
+  clearLockdown() {
+    localStorage.setItem(LOCKDOWN_KEY, JSON.stringify(DEFAULT_LOCKDOWN_STATE));
+    this.addAudit('Administrator', 'Lockdown Cleared', 'Lockdown state has been reset.');
   }
 };

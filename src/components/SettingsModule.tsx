@@ -26,9 +26,10 @@ import {
   Check,
   X,
   Lock,
-  LockKeyhole
+  LockKeyhole,
+  Unlock
 } from 'lucide-react';
-import { FactorySettings, UserRole, UserAccount, CustomRole } from '../types';
+import { FactorySettings, UserRole, UserAccount, CustomRole, LockdownState } from '../types';
 
 interface SettingsModuleProps {
   settings: FactorySettings;
@@ -44,6 +45,13 @@ interface SettingsModuleProps {
   onDeleteUser?: (id: string) => void;
   onSaveRole?: (role: CustomRole) => void;
   onDeleteRole?: (id: string) => void;
+  lockdownState?: {
+    lockdownEndDate: string | null;
+    isLocked: boolean;
+    onActivateLockdown: () => void;
+    onUnlockWithToken: (token: string) => boolean;
+    onClearLockdown: () => void;
+  };
 }
 
 const AVAILABLE_MODULES = [
@@ -75,8 +83,12 @@ export default function SettingsModule({
   onSaveUser,
   onDeleteUser,
   onSaveRole,
-  onDeleteRole
+  onDeleteRole,
+  lockdownState
 }: SettingsModuleProps) {
+  
+  // Lockdown token input
+  const [lockdownToken, setLockdownToken] = useState('');
   
   // Tabs management
   const [activeSubTab, setActiveSubTab] = useState<'parameters' | 'roles' | 'users'>('parameters');
@@ -607,6 +619,77 @@ export default function SettingsModule({
               >
                 <RefreshCcw className="w-4 h-4" /> Restore Demo Database
               </button>
+            </div>
+
+            {/* Lockdown System Panel */}
+            <div className="bg-slate-800 border border-slate-700/60 rounded-2xl p-5 shadow-lg space-y-3.5">
+              <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-700 pb-2">
+                <Shield className="w-3.5 h-3.5 text-rose-400" /> System Lockdown Control
+              </h3>
+              {lockdownState?.isLocked ? (
+                <div className="space-y-3">
+                  <div className="p-3 bg-red-950/20 border border-red-900/40 rounded-lg">
+                    <p className="text-[11px] text-red-400 font-bold">SYSTEM LOCKED</p>
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      The system is locked. Enter the developer unlock token to regain access.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-slate-400">Developer Unlock Token</label>
+                    <input
+                      type="password"
+                      value={lockdownToken}
+                      onChange={(e) => setLockdownToken(e.target.value)}
+                      placeholder="Enter unlock token"
+                      className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none"
+                    />
+                    <button
+                      onClick={() => {
+                        if (lockdownState.onUnlockWithToken(lockdownToken)) {
+                          alert('System unlocked successfully!');
+                        } else {
+                          alert('Invalid token. Contact developer.');
+                        }
+                        setLockdownToken('');
+                      }}
+                      className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                    >
+                      <Unlock className="w-3.5 h-3.5" /> Unlock System
+                    </button>
+                  </div>
+                </div>
+              ) : lockdownState?.lockdownEndDate ? (
+                <div className="space-y-3">
+                  <div className="p-3 bg-amber-950/20 border border-amber-700/40 rounded-lg">
+                    <p className="text-[11px] text-amber-400 font-bold">LOCKDOWN ACTIVE</p>
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Lockdown period ends: {new Date(lockdownState.lockdownEndDate).toDateString()}
+                    </p>
+                  </div>
+                  <button
+                    onClick={lockdownState.onClearLockdown}
+                    className="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                  >
+                    <X className="w-3.5 h-3.5" /> Cancel Lockdown
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    Activate a 7-day system lockdown. After the countdown finishes, the system will lock until unlocked with a developer token.
+                  </p>
+                  <button
+                    onClick={() => {
+                      if (confirm('Activate 7-day system lockdown? The system will lock automatically after the period ends.')) {
+                        lockdownState?.onActivateLockdown();
+                      }
+                    }}
+                    className="w-full py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                  >
+                    <Lock className="w-4 h-4" /> Activate Lockdown (7 Days)
+                  </button>
+                </div>
+              )}
             </div>
 
           </div>

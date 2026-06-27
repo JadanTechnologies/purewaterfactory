@@ -29,9 +29,13 @@ import {
   UserCheck,
   CheckCircle2,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Shield,
+  Key,
+  AlertTriangle,
+  Clock,
+  Unlock
 } from 'lucide-react';
-
 import { db } from './db';
 import { 
   UserRole, 
@@ -170,6 +174,12 @@ export default function App() {
   const [users, setUsers] = useState<UserAccount[]>(() => db.getUsers());
   const [roles, setRoles] = useState<CustomRole[]>(() => db.getRoles());
 
+  // Lockdown state
+  const [lockdownState, setLockdownState] = useState(() => db.getLockdownState());
+  const [showLockdownModal, setShowLockdownModal] = useState(false);
+  const [lockdownTimeLeft, setLockdownTimeLeft] = useState<string>('');
+  const [unlockTokenInput, setUnlockTokenInput] = useState('');
+
   const language = settings.language;
 
   // Translation function helper
@@ -195,6 +205,40 @@ export default function App() {
     setNotifications(db.getNotifications());
     setUsers(db.getUsers());
     setRoles(db.getRoles());
+    setLockdownState(db.getLockdownState());
+  };
+
+  // Lockdown functions
+  const calculateTimeLeft = (endDate: string | null): string => {
+    if (!endDate) return '';
+    const end = new Date(endDate);
+    const now = new Date();
+    const diff = end.getTime() - now.getTime();
+    
+    if (diff <= 0) return '0d 0h 0m 0s';
+    
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+    
+    return `${days}d ${hours}h ${minutes}m ${seconds}s`;
+  };
+
+  const handleUnlockWithToken = () => {
+    if (!unlockTokenInput.trim()) {
+      alert('Please enter the developer unlock token.');
+      return;
+    }
+    const validToken = 'DEV-UNLOCK-' + new Date().getFullYear() + '-TOKEN';
+    if (unlockTokenInput.trim() === validToken) {
+      db.unlockSystem(unlockTokenInput.trim());
+      setLockdownState(db.getLockdownState());
+      setShowLockdownModal(false);
+      alert('System unlocked successfully!');
+    } else {
+      alert('Invalid unlock token. Contact the developer for the correct token.');
+    }
   };
 
   const handleLogin = (user: UserAccount) => {
@@ -203,6 +247,12 @@ export default function App() {
     setIsLoggedIn(true);
     db.addAudit(user.role as any, 'Sign In', `User ${user.name} authenticated successfully.`);
     syncDatabaseStates();
+    
+    // Check for active lockdown after login
+    const currentLockdown = db.getLockdownState();
+    if (currentLockdown.lockdownEndDate && !currentLockdown.isLocked) {
+      setShowLockdownModal(true);
+    }
   };
 
   const handleLogout = () => {
@@ -337,8 +387,31 @@ export default function App() {
     syncDatabaseStates();
   };
 
+  // Lockdown countdown effect
+  useEffect(() => {
+    if (!lockdownState.lockdownEndDate || lockdownState.isLocked) return;
+    
+    const interval = setInterval(() => {
+      const timeLeft = calculateTimeLeft(lockdownState.lockdownEndDate);
+      setLockdownTimeLeft(timeLeft);
+      
+      // Check if countdown has expired
+      if (timeLeft === '0d 0h 0m 0s' || timeLeft === '') {
+        clearInterval(interval);
+        db.lockSystem();
+        setLockdownState(db.getLockdownState());
+      }
+    }, 1000);
+    
+    setLockdownTimeLeft(calculateTimeLeft(lockdownState.lockdownEndDate));
+    return () => clearInterval(interval);
+  }, [lockdownState.lockdownEndDate, lockdownState.isLocked]);
+
   // Navigation panel access checker
   const hasAccess = (moduleName: string): boolean => {
+    // Block all access if system is locked
+    if (lockdownState.isLocked) return false;
+    
     const roleName = currentUser.role;
     // Check if dynamic role is defined in roles
     const matchingRole = roles.find(r => r.id === roleName);
@@ -415,6 +488,48 @@ export default function App() {
   };
 
   const searchResults = performSearchQuery();
+
+  // Check if system is locked - show unlock screen
+  if (lockdownState.isLocked) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4">
+        <div className="w-full max-w-lg bg-slate-800 rounded-2xl shadow-2xl border border-slate-700/50 p-8 space-y-6">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-red-950/20 border border-red-900/40 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Lock className="w-10 h-10 text-red-400" />
+            </div>
+            <h2 className="text-2xl font-bold text-red-400 mb-2">SYSTEM LOCKED</h2>
+            <p className="text-slate-400 text-sm">
+              The system lockdown period has ended. Contact the developer to obtain an unlock token.
+            </p>
+          </div>
+          
+          <div className="space-y-4">
+            <label className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
+              <Key className="w-3.5 h-3.5 text-rose-400" /> Developer Unlock Token
+            </label>
+            <input
+              type="password"
+              value={unlockTokenInput}
+              onChange={(e) => setUnlockTokenInput(e.target.value)}
+              placeholder="Enter unlock token provided by developer"
+              className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-3 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/40"
+            />
+            <button
+              onClick={handleUnlockWithToken}
+              className="w-full py-3 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Unlock className="w-4 h-4" /> Unlock System
+            </button>
+          </div>
+          
+          <p className="text-center text-[10px] text-slate-500">
+            Contact: Jadan Tech Solutions Nig Ltd - 07061511390
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isLoggedIn) {
     return <LoginScreen onLogin={handleLogin} />;
@@ -876,6 +991,27 @@ export default function App() {
                   onDeleteUser={handleDeleteUser}
                   onSaveRole={handleSaveRole}
                   onDeleteRole={handleDeleteRole}
+                  lockdownState={{
+                    lockdownEndDate: lockdownState.lockdownEndDate,
+                    isLocked: lockdownState.isLocked,
+                    onActivateLockdown: () => {
+                      db.activateLockdown();
+                      setLockdownState(db.getLockdownState());
+                    },
+                    onUnlockWithToken: (token: string) => {
+                      const validToken = 'DEV-UNLOCK-' + new Date().getFullYear() + '-TOKEN';
+                      if (token === validToken) {
+                        db.unlockSystem(token);
+                        setLockdownState(db.getLockdownState());
+                        return true;
+                      }
+                      return false;
+                    },
+                    onClearLockdown: () => {
+                      db.clearLockdown();
+                      setLockdownState(db.getLockdownState());
+                    }
+                  }}
                 />
               )}
             </>
@@ -901,6 +1037,53 @@ export default function App() {
         onSave={handleUpdateProfile}
         language={language}
       />
+
+      {/* Lockdown Countdown Modal - appears after login, can be skipped */}
+      {showLockdownModal && lockdownState.lockdownEndDate && !lockdownState.isLocked && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-8 max-w-lg w-full space-y-6 shadow-2xl">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-rose-950/20 border border-rose-900/40 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Clock className="w-8 h-8 text-rose-400" />
+              </div>
+              <h3 className="text-xl font-bold text-rose-400 mb-2">System Lockdown Activated</h3>
+              <p className="text-slate-400 text-xs">
+                The system has entered a 7-day lockdown period. After the countdown finishes, the system will lock automatically.
+              </p>
+            </div>
+            
+            <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 text-center">
+              <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2">Time Remaining Until Lockdown</p>
+              <p className="text-2xl font-mono font-bold text-amber-400">{lockdownTimeLeft}</p>
+              <p className="text-[10px] text-slate-500 mt-2">
+                Lockdown ends: {lockdownState.lockdownEndDate ? new Date(lockdownState.lockdownEndDate).toDateString() : '-'}
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowLockdownModal(false)}
+                className="flex-1 py-2.5 px-4 rounded-xl border border-slate-700 text-slate-300 font-semibold text-xs hover:bg-slate-700/50 transition-all cursor-pointer"
+              >
+                Skip (Continue Working)
+              </button>
+              <button
+                onClick={() => {
+                  const confirmClear = window.confirm('Are you sure you want to cancel the lockdown? This will reset the system lock status.');
+                  if (confirmClear) {
+                    db.clearLockdown();
+                    setLockdownState(db.getLockdownState());
+                    setShowLockdownModal(false);
+                  }
+                }}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs transition-all cursor-pointer"
+              >
+                Cancel Lockdown
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
