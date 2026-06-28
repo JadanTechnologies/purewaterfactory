@@ -26,9 +26,11 @@ import {
   Check,
   X,
   Lock,
-  LockKeyhole
+  LockKeyhole,
+  Unlock,
+  Calendar
 } from 'lucide-react';
-import { FactorySettings, UserRole, UserAccount, CustomRole } from '../types';
+import { FactorySettings, UserRole, UserAccount, CustomRole, LockdownState, EndOfDayReport } from '../types';
 
 interface SettingsModuleProps {
   settings: FactorySettings;
@@ -44,6 +46,8 @@ interface SettingsModuleProps {
   onDeleteUser?: (id: string) => void;
   onSaveRole?: (role: CustomRole) => void;
   onDeleteRole?: (id: string) => void;
+  lockdownState?: { lockdownEndDate: string | null; isLocked: boolean; onActivateLockdown: () => void; onUnlockWithToken: (token: string) => boolean; onClearLockdown: () => void; };
+  endOfDayReports?: EndOfDayReport[];
 }
 
 const AVAILABLE_MODULES = [
@@ -75,11 +79,27 @@ export default function SettingsModule({
   onSaveUser,
   onDeleteUser,
   onSaveRole,
-  onDeleteRole
+  onDeleteRole,
+  lockdownState,
+  endOfDayReports = []
 }: SettingsModuleProps) {
   
   // Tabs management
-  const [activeSubTab, setActiveSubTab] = useState<'parameters' | 'roles' | 'users'>('parameters');
+  const [activeSubTab, setActiveSubTab] = useState<'parameters' | 'roles' | 'users' | 'eod'>('parameters');
+  const [lockdownToken, setLockdownToken] = useState('');
+
+  const playSound = (type: 'success' | 'warning') => {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    oscillator.frequency.value = type === 'success' ? 800 : 400;
+    oscillator.type = 'sine';
+    gainNode.gain.value = 0.2;
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 0.3);
+  };
 
   // Parameters form state copy
   const [factoryName, setFactoryName] = useState(settings.factoryName);
@@ -340,6 +360,19 @@ export default function SettingsModule({
               Users & Passwords
             </span>
           </button>
+          <button
+            onClick={() => { setActiveSubTab('eod'); setShowRoleForm(false); setShowUserForm(false); }}
+            className={`pb-3 px-4 text-xs font-bold transition-all cursor-pointer border-b-2 whitespace-nowrap ${
+              activeSubTab === 'eod'
+                ? 'border-sky-500 text-white font-black'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <span className="flex items-center gap-2">
+              <Calendar className="w-3.5 h-3.5" />
+              End of Day Reports
+            </span>
+          </button>
         </div>
       )}
 
@@ -592,24 +625,68 @@ export default function SettingsModule({
               </div>
             </div>
 
-            {/* Reset factory default values */}
-            <div className="bg-slate-800 border border-slate-700/60 rounded-2xl p-5 shadow-lg space-y-3.5">
-              <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-700 pb-2 text-rose-400">
-                <AlertTriangle className="w-3.5 h-3.5" /> Factory Reset
-              </h3>
-              <p className="text-[11px] text-slate-400 leading-relaxed">
-                Restore the entire Nile Pure Water Factory database ledger back to the demo/starting configurations.
-              </p>
+{/* Reset factory default values */}
+             <div className="bg-slate-800 border border-slate-700/60 rounded-2xl p-5 shadow-lg space-y-3.5">
+               <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-700 pb-2 text-rose-400">
+                 <AlertTriangle className="w-3.5 h-3.5" /> Factory Reset
+               </h3>
+               <p className="text-[11px] text-slate-400 leading-relaxed">
+                 Restore the entire Nile Pure Water Factory database ledger back to the demo/starting configurations.
+               </p>
 
-              <button
-                onClick={handleResetConfirm}
-                className="w-full py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-pointer transition-all"
-              >
-                <RefreshCcw className="w-4 h-4" /> Restore Demo Database
-              </button>
-            </div>
+               <button
+                 onClick={handleResetConfirm}
+                 className="w-full py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+               >
+                 <RefreshCcw className="w-4 h-4" /> Restore Demo Database
+               </button>
+             </div>
 
-          </div>
+             {/* Lockdown System Panel */}
+             <div className="bg-slate-800 border border-slate-700/60 rounded-2xl p-5 shadow-lg space-y-3.5">
+               <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-700 pb-2">
+                 <Lock className="w-3.5 h-3.5 text-amber-400" /> Lockdown System
+               </h3>
+               {lockdownState?.isLocked ? (
+                 <div className="space-y-3">
+                   <p className="text-[11px] text-slate-400 leading-relaxed">
+                     System is locked. Lockdown ends: {lockdownState.lockdownEndDate || 'Not set'}
+                   </p>
+                   <div className="space-y-2">
+                     <label className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
+                       <Key className="w-3.5 h-3.5 text-amber-400" /> Unlock Token
+                     </label>
+                     <input
+                       type="text"
+                       value={lockdownToken}
+                       onChange={(e) => setLockdownToken(e.target.value)}
+                       placeholder="Enter unlock token"
+                       className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none"
+                     />
+                   </div>
+                   <button
+                     onClick={() => {
+                       if (lockdownState?.onUnlockWithToken(lockdownToken)) {
+                         playSound('success');
+                         alert('System unlocked successfully.');
+                       } else {
+                         playSound('warning');
+                         alert('Invalid unlock token.');
+                       }
+                     }}
+                     className="w-full py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                   >
+                     <Unlock className="w-4 h-4" /> Unlock System
+                   </button>
+                 </div>
+               ) : (
+                 <p className="text-[11px] text-slate-400 leading-relaxed">
+                   System lockdown is currently inactive. No restrictions in place.
+                 </p>
+               )}
+             </div>
+
+           </div>
 
         </div>
       )}
@@ -934,6 +1011,57 @@ export default function SettingsModule({
                             )}
                           </div>
                         </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab content 4: End of Day Reports */}
+      {activeSubTab === 'eod' && (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center bg-slate-800/20 p-4 rounded-xl border border-slate-700/40">
+            <div>
+              <h3 className="text-sm font-bold text-white">End of Day Reports</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Daily summaries of production, sales, and financial status.</p>
+            </div>
+          </div>
+
+          {(endOfDayReports || []).length === 0 ? (
+            <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 text-center">
+              <p className="text-xs text-slate-400">No end of day reports available.</p>
+            </div>
+          ) : (
+            <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden shadow-lg">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-900/60 border-b border-slate-700/80 text-[10px] font-mono uppercase tracking-wider text-slate-400">
+                      <th className="py-3.5 px-5 font-bold">Date</th>
+                      <th className="py-3.5 px-5 font-bold">Closed At</th>
+                      <th className="py-3.5 px-5 font-bold">Total Sales</th>
+                      <th className="py-3.5 px-5 font-bold">Total Expenses</th>
+                      <th className="py-3.5 px-5 font-bold">Production Bags</th>
+                      <th className="py-3.5 px-5 font-bold">Nylon Used (kg)</th>
+                      <th className="py-3.5 px-5 font-bold">Cash at Hand</th>
+                      <th className="py-3.5 px-5 font-bold">Generated By</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-700/40 text-xs text-slate-200">
+                    {endOfDayReports.map((report) => (
+                      <tr key={report.id} className="hover:bg-slate-700/20 transition-all">
+                        <td className="py-3.5 px-5 font-bold text-white">{report.date}</td>
+                        <td className="py-3.5 px-5 text-slate-300">{report.closedAt}</td>
+                        <td className="py-3.5 px-5 text-emerald-400 font-bold">{settings.currency}{report.totalSales.toLocaleString()}</td>
+                        <td className="py-3.5 px-5 text-rose-400 font-bold">{settings.currency}{report.totalExpenses.toLocaleString()}</td>
+                        <td className="py-3.5 px-5 text-sky-400 font-bold">{report.totalProductionBags.toLocaleString()} bags</td>
+                        <td className="py-3.5 px-5 text-slate-300">{report.totalNylonUsed} kg</td>
+                        <td className="py-3.5 px-5 text-amber-400 font-bold">{settings.currency}{report.cashAtHand.toLocaleString()}</td>
+                        <td className="py-3.5 px-5 text-slate-300">{report.generatedBy}</td>
                       </tr>
                     ))}
                   </tbody>
