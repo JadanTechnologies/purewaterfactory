@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Droplet, 
   TrendingUp, 
@@ -227,19 +227,77 @@ export default function App() {
 
   const handleUnlockWithToken = () => {
     if (!unlockTokenInput.trim()) {
+      playSound('error');
       alert('Please enter the developer unlock token.');
       return;
     }
-    const validToken = 'DEV-UNLOCK-' + new Date().getFullYear() + '-TOKEN';
+    const validToken = '09040434043';
     if (unlockTokenInput.trim() === validToken) {
       db.unlockSystem(unlockTokenInput.trim());
       setLockdownState(db.getLockdownState());
       setShowLockdownModal(false);
-      alert('System unlocked successfully!');
+      playSound('success');
+      showPopupNotification('System unlocked successfully!', 'success');
     } else {
-      alert('Invalid unlock token. Contact the developer for the correct token.');
+      playSound('error');
+      showPopupNotification('Invalid unlock token', 'error');
     }
   };
+
+  // Sound system
+  const playSound = (type: 'success' | 'error' | 'notification') => {
+    if (typeof Audio === 'undefined') return;
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      let frequency: number, duration: number;
+      switch (type) {
+        case 'success':
+          frequency = 523.25;
+          duration = 200;
+          break;
+        case 'error':
+          frequency = 220;
+          duration = 300;
+          break;
+        case 'notification':
+          frequency = 349.23;
+          duration = 150;
+          break;
+        default:
+          frequency = 440;
+          duration = 200;
+      }
+      
+      oscillator.frequency.value = frequency;
+      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + duration / 1000);
+    } catch (e) {
+      // Audio not supported
+    }
+  };
+
+  // Popup notification system
+  const [popupNotifications, setPopupNotifications] = useState<Array<{id: number, message: string, type: 'success' | 'error' | 'info', visible: boolean}>>([]);
+  
+  const showPopupNotification = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    const id = Date.now();
+    setPopupNotifications(prev => [...prev, { id, message, type, visible: true }]);
+    
+    setTimeout(() => {
+      setPopupNotifications(prev => prev.map(n => n.id === id ? { ...n, visible: false } : n));
+      setTimeout(() => {
+        setPopupNotifications(prev => prev.filter(n => n.id !== id));
+      }, 300);
+    }, 3000);
+  }, []);
 
   const handleLogin = (user: UserAccount) => {
     setCurrentUser(user);
@@ -265,75 +323,102 @@ export default function App() {
   const addProductionBatch = (batch: Omit<ProductionBatch, 'id'>) => {
     db.saveProduction(batch);
     syncDatabaseStates();
+    playSound('notification');
+    showPopupNotification(`Production batch ${batch.batchNumber} added`, 'success');
   };
 
   const adjustStock = (itemId: string, qtyChange: number, type: 'Stock In' | 'Stock Out' | 'Adjustment', reason: string, operator: string) => {
     db.adjustInventoryStock(itemId, qtyChange, type, reason, operator);
     syncDatabaseStates();
+    playSound('notification');
+    showPopupNotification(`Stock adjusted: ${qtyChange} units (${type})`, 'success');
   };
 
   const addSale = (sale: Omit<Sale, 'id'>) => {
     db.saveSale(sale);
     syncDatabaseStates();
+    playSound('notification');
+    showPopupNotification(`Invoice ${sale.invoiceNumber} generated`, 'success');
   };
 
   const addCustomer = (customer: Omit<Customer, 'id' | 'createdAt'>) => {
     db.saveCustomer(customer);
     syncDatabaseStates();
+    playSound('notification');
+    showPopupNotification(`Customer ${customer.businessName} added`, 'success');
   };
 
   const recordPayment = (customerId: string, amount: number, method: 'Cash' | 'Transfer' | 'POS', reference: string) => {
     db.recordPayment(customerId, amount, method, reference, currentUser.name);
     syncDatabaseStates();
+    playSound('notification');
+    showPopupNotification(`Payment of ₦${amount.toLocaleString()} recorded (${method})`, 'success');
   };
 
   const addReturn = (ret: Omit<ReturnedWater, 'id'>) => {
     db.saveReturn(ret);
     syncDatabaseStates();
+    playSound('notification');
+    showPopupNotification(`Return of ${ret.quantityBags} bags logged`, 'success');
   };
 
   const addLeakage = (leak: Omit<LeakDamage, 'id'>) => {
     db.saveLeakDamage(leak);
     syncDatabaseStates();
+    playSound('notification');
+    showPopupNotification(`Leakage of ${leak.quantityBags} bags recorded`, 'success');
   };
 
   const addExpense = (expense: Omit<Expense, 'id'>) => {
     db.saveExpense(expense);
     syncDatabaseStates();
+    playSound('notification');
+    showPopupNotification(`Expense of ₦${expense.amount.toLocaleString()} added`, 'success');
   };
 
   const saveAttendance = (records: Omit<AttendanceRecord, 'id'>[]) => {
     db.saveAttendance(records);
     syncDatabaseStates();
+    playSound('notification');
+    showPopupNotification(`Attendance saved for ${records.length} staff members`, 'success');
   };
 
   const addEmployee = (emp: Employee) => {
     db.saveEmployee(emp);
     syncDatabaseStates();
+    playSound('notification');
+    showPopupNotification(`Employee ${emp.name} added to staff`, 'success');
   };
 
   const addDelivery = (delivery: Omit<DeliveryNote, 'id'>) => {
     db.saveDelivery(delivery);
     syncDatabaseStates();
+    playSound('notification');
+    showPopupNotification(`Delivery ${delivery.deliveryNumber} created`, 'success');
   };
 
   const updateDeliveryStatus = (id: string, status: 'Delivered' | 'Pending' | 'Returned') => {
     db.updateDeliveryStatus(id, status);
     syncDatabaseStates();
+    playSound('notification');
+    showPopupNotification(`Delivery status updated to ${status}`, 'success');
   };
 
   const saveSettings = (newSettings: FactorySettings) => {
     db.saveSettings(newSettings);
     syncDatabaseStates();
+    playSound('notification');
+    showPopupNotification('Settings updated successfully', 'success');
   };
 
   const handleSaveUser = (user: UserAccount) => {
     db.saveUser(user);
-    // If saving/updating current user from settings, sync current user state too
     if (user.id === currentUser.id) {
       setCurrentUser(user);
     }
     syncDatabaseStates();
+    playSound('notification');
+    showPopupNotification(`User ${user.name} saved successfully`, 'success');
   };
 
   const handleUpdateProfile = (updatedUser: UserAccount) => {
@@ -341,33 +426,43 @@ export default function App() {
     setCurrentUser(updatedUser);
     db.addAudit(updatedUser.role as any, 'Update Profile', `User ${updatedUser.name} updated their personal profile credentials.`);
     syncDatabaseStates();
+    playSound('notification');
+    showPopupNotification('Profile updated successfully', 'success');
   };
 
   const handleDeleteUser = (id: string) => {
     db.deleteUser(id);
     syncDatabaseStates();
+    playSound('notification');
+    showPopupNotification('User account deleted', 'info');
   };
 
   const handleSaveRole = (role: CustomRole) => {
     db.saveRole(role);
     syncDatabaseStates();
+    playSound('notification');
+    showPopupNotification(`Role ${role.name} saved`, 'success');
   };
 
   const handleDeleteRole = (id: string) => {
     db.deleteRole(id);
     syncDatabaseStates();
+    playSound('notification');
+    showPopupNotification(`Role ${id} deleted`, 'info');
   };
 
   const handleNotificationsRead = () => {
     db.markNotificationsAsRead();
     setNotifications(db.getNotifications());
     setShowNotificationDrawer(false);
+    playSound('notification');
   };
 
   // Quick switch active role mock tool (makes user testing of authorization rules highly delightful)
   const handleQuickRoleSwitch = (role: string) => {
     if (authenticatedRole !== 'Administrator') {
-      alert("Unauthorized: Only an Administrator can switch roles.");
+      playSound('error');
+      showPopupNotification('Only Administrator can switch roles', 'error');
       return;
     }
     const matchingUser = users.find(u => u.role === role);
@@ -385,6 +480,7 @@ export default function App() {
     }
     db.addAudit(role as any, 'Role Hot Swap', `Swapped active workspace privilege to ${role}`);
     syncDatabaseStates();
+    playSound('notification');
   };
 
   // Lockdown countdown effect
@@ -400,6 +496,8 @@ export default function App() {
         clearInterval(interval);
         db.lockSystem();
         setLockdownState(db.getLockdownState());
+        playSound('error');
+        showPopupNotification('SYSTEM LOCKED - Contact developer for unlock token', 'error');
       }
     }, 1000);
     
@@ -999,7 +1097,7 @@ export default function App() {
                       setLockdownState(db.getLockdownState());
                     },
                     onUnlockWithToken: (token: string) => {
-                      const validToken = 'DEV-UNLOCK-' + new Date().getFullYear() + '-TOKEN';
+                      const validToken = '09040434043';
                       if (token === validToken) {
                         db.unlockSystem(token);
                         setLockdownState(db.getLockdownState());
@@ -1084,6 +1182,35 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Popup Notifications */}
+      <div className="fixed top-20 right-4 z-50 space-y-2 pointer-events-none">
+        {popupNotifications.map((n) => (
+          <div
+            key={n.id}
+            className={`p-3 rounded-xl border shadow-lg transition-all duration-300 max-w-xs ${
+              n.visible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
+            } ${
+              n.type === 'success' 
+                ? 'bg-emerald-950/90 border-emerald-700/60 text-emerald-300' 
+                : n.type === 'error'
+                ? 'bg-red-950/90 border-red-700/60 text-red-300'
+                : 'bg-sky-950/90 border-sky-700/60 text-sky-300'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              {n.type === 'success' ? (
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              ) : n.type === 'error' ? (
+                <AlertTriangle className="w-4 h-4 text-red-400" />
+              ) : (
+                <Bell className="w-4 h-4 text-sky-400" />
+              )}
+              <span className="text-xs font-medium">{n.message}</span>
+            </div>
+          </div>
+        ))}
+      </div>
 
     </div>
   );

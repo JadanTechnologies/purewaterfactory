@@ -27,7 +27,8 @@ import {
   X,
   Lock,
   LockKeyhole,
-  Unlock
+  Unlock,
+  CheckCircle2
 } from 'lucide-react';
 import { FactorySettings, UserRole, UserAccount, CustomRole, LockdownState } from '../types';
 
@@ -89,6 +90,46 @@ export default function SettingsModule({
   
   // Lockdown token input
   const [lockdownToken, setLockdownToken] = useState('');
+  
+  // Sound system
+  const playSound = (type: 'success' | 'error' | 'notification') => {
+    if (typeof Audio === 'undefined') return;
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      let frequency: number, duration: number;
+      switch (type) {
+        case 'success':
+          frequency = 523.25;
+          duration = 200;
+          break;
+        case 'error':
+          frequency = 220;
+          duration = 300;
+          break;
+        case 'notification':
+          frequency = 349.23;
+          duration = 150;
+          break;
+        default:
+          frequency = 440;
+          duration = 200;
+      }
+      
+      oscillator.frequency.value = frequency;
+      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + duration / 1000);
+    } catch (e) {
+      // Audio not supported
+    }
+  };
   
   // Tabs management
   const [activeSubTab, setActiveSubTab] = useState<'parameters' | 'roles' | 'users'>('parameters');
@@ -646,8 +687,10 @@ export default function SettingsModule({
                     <button
                       onClick={() => {
                         if (lockdownState.onUnlockWithToken(lockdownToken)) {
+                          playSound('success');
                           alert('System unlocked successfully!');
                         } else {
+                          playSound('error');
                           alert('Invalid token. Contact developer.');
                         }
                         setLockdownToken('');
