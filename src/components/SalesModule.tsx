@@ -52,7 +52,7 @@ export default function SalesModule({
   const [quantityBags, setQuantityBags] = useState<number>(100);
   const [unitPrice, setUnitPrice] = useState<number>(200);
   const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'Transfer' | 'POS' | 'Credit'>('Cash');
-  const [status, setStatus] = useState<'Paid' | 'Partially Paid' | 'Unpaid'>('Paid');
+  const [status, setStatus] = useState<'Paid' | 'Partially Paid' | 'Unpaid' | 'On Hold'>('Paid');
   const [amountPaid, setAmountPaid] = useState<number>(20000); // 100 * 200 = 20000
   const [remarks, setRemarks] = useState('');
 

@@ -28,7 +28,8 @@ import {
   Lock,
   LockKeyhole,
   Unlock,
-  Calendar
+  Calendar,
+  Printer
 } from 'lucide-react';
 import { FactorySettings, UserRole, UserAccount, CustomRole, LockdownState, EndOfDayReport } from '../types';
 

@@ -89,7 +89,7 @@ export interface Sale {
   unitPrice: number;
   totalAmount: number;
   paymentMethod: 'Cash' | 'Transfer' | 'POS' | 'Credit';
-  status: 'Paid' | 'Partially Paid' | 'Unpaid';
+  status: 'Paid' | 'Partially Paid' | 'Unpaid' | 'On Hold';
   amountPaid: number;
   remarks?: string;
 }

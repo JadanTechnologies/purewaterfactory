@@ -284,7 +284,7 @@ export default function App() {
       }
       
       oscillator.frequency.value = frequency;
-      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+      gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
       gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
       oscillator.start();
       oscillator.stop(audioContext.currentTime + duration / 1000);
