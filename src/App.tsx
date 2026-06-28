@@ -34,7 +34,10 @@ import {
   Key,
   AlertTriangle,
   Clock,
-  Unlock
+  Unlock,
+  BarChart3,
+  Calendar,
+  Receipt
 } from 'lucide-react';
 import { db } from './db';
 import { 
@@ -54,7 +57,8 @@ import {
   NotificationItem, 
   FactorySettings,
   UserAccount,
-  CustomRole 
+  CustomRole,
+  EndOfDayReport
 } from './types';
 
 // Importing modules
@@ -174,6 +178,10 @@ export default function App() {
   const [users, setUsers] = useState<UserAccount[]>(() => db.getUsers());
   const [roles, setRoles] = useState<CustomRole[]>(() => db.getRoles());
 
+  // End of Day state
+  const [endOfDayReports, setEndOfDayReports] = useState<EndOfDayReport[]>(() => db.getEndOfDayReports());
+  const [showEndOfDayModal, setShowEndOfDayModal] = useState(false);
+
   // Lockdown state
   const [lockdownState, setLockdownState] = useState(() => db.getLockdownState());
   const [showLockdownModal, setShowLockdownModal] = useState(false);
@@ -206,6 +214,7 @@ export default function App() {
     setUsers(db.getUsers());
     setRoles(db.getRoles());
     setLockdownState(db.getLockdownState());
+    setEndOfDayReports(db.getEndOfDayReports());
   };
 
   // Lockdown functions
@@ -298,6 +307,33 @@ export default function App() {
       }, 300);
     }, 3000);
   }, []);
+
+  // End of Day generation
+  const generateEndOfDayReport = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const totalSales = sales.filter(s => s.date === today).reduce((sum, s) => sum + s.totalAmount, 0);
+    const totalExpenses = expenses.filter(e => e.date === today).reduce((sum, e) => sum + e.amount, 0);
+    const totalProductionBags = production.filter(p => p.date === today).reduce((sum, p) => sum + p.bagsProduced, 0);
+    const totalNylonUsed = production.filter(p => p.date === today).reduce((sum, p) => sum + p.nylonUsedKg, 0);
+    const waterItem = inventory.find(i => i.type === 'Pure Water Bag');
+    const closingStock = waterItem ? waterItem.quantity : 0;
+    const cashAtHand = totalSales - totalExpenses; // Simplified cash calculation
+    
+    const report = db.generateEndOfDayReport({
+      date: today,
+      totalSales,
+      totalExpenses,
+      totalProductionBags,
+      totalNylonUsed,
+      closingStock,
+      cashAtHand,
+      generatedBy: currentUser.name
+    });
+    
+    setEndOfDayReports(db.getEndOfDayReports());
+    playSound('success');
+    showPopupNotification(`End of Day report generated for ${today}`, 'success');
+  };
 
   const handleLogin = (user: UserAccount) => {
     setCurrentUser(user);
@@ -944,6 +980,8 @@ export default function App() {
                   t={t}
                   onNavigate={(mod) => setActiveModule(mod)}
                   hasAccess={hasAccess}
+                  onGenerateEndOfDay={generateEndOfDayReport}
+                  endOfDayReports={endOfDayReports}
                 />
               )}
 
@@ -1110,6 +1148,7 @@ export default function App() {
                       setLockdownState(db.getLockdownState());
                     }
                   }}
+                  endOfDayReports={endOfDayReports}
                 />
               )}
             </>

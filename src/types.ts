@@ -209,3 +209,16 @@ export interface NotificationItem {
   message: string;
   read: boolean;
 }
+
+export interface EndOfDayReport {
+  id: string;
+  date: string;
+  closedAt: string;
+  totalSales: number;
+  totalExpenses: number;
+  totalProductionBags: number;
+  totalNylonUsed: number;
+  closingStock: number;
+  cashAtHand: number;
+  generatedBy: string;
+}

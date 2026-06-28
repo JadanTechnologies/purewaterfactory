@@ -22,7 +22,8 @@ import {
   UserRole,
   UserAccount,
   CustomRole,
-  LockdownState
+  LockdownState,
+  EndOfDayReport
 } from './types';
 
 // Storage keys
@@ -43,7 +44,8 @@ const KEYS = {
   AUDIT_LOGS: 'pwfms_audit_logs',
   NOTIFICATIONS: 'pwfms_notifications',
   USERS: 'pwfms_users',
-  ROLES: 'pwfms_roles'
+  ROLES: 'pwfms_roles',
+  END_OF_DAY_REPORTS: 'pwfms_endofday_reports'
 };
 
 const DEFAULT_SETTINGS: FactorySettings = {
@@ -802,5 +804,29 @@ export const db = {
   clearLockdown() {
     localStorage.setItem(LOCKDOWN_KEY, JSON.stringify(DEFAULT_LOCKDOWN_STATE));
     this.addAudit('Administrator', 'Lockdown Cleared', 'Lockdown state has been reset.');
+  },
+
+  // End of Day Reports
+  getEndOfDayReports(): EndOfDayReport[] {
+    const r = localStorage.getItem(KEYS.END_OF_DAY_REPORTS);
+    return r ? JSON.parse(r) : [];
+  },
+
+  generateEndOfDayReport(report: Omit<EndOfDayReport, 'id' | 'closedAt'>) {
+    const reports = this.getEndOfDayReports();
+    const newReport: EndOfDayReport = {
+      ...report,
+      id: 'eod-' + Date.now(),
+      closedAt: new Date().toISOString()
+    };
+    reports.unshift(newReport);
+    localStorage.setItem(KEYS.END_OF_DAY_REPORTS, JSON.stringify(reports.slice(0, 365))); // Keep last 365 days
+    this.addAudit('Administrator', 'End of Day Report', `Generated EOD report for ${report.date}`);
+    return newReport;
+  },
+
+  getLastEndOfDayReport(): EndOfDayReport | null {
+    const reports = this.getEndOfDayReports();
+    return reports[0] || null;
   }
 };

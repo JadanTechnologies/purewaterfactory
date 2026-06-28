@@ -16,7 +16,9 @@ import {
   ArrowUpRight, 
   ChevronRight,
   TrendingDown,
-  Calculator
+  Calculator,
+  Calendar,
+  FileText
 } from 'lucide-react';
 import { 
   Sale, 
@@ -27,7 +29,8 @@ import {
   Customer,
   UserRole,
   Expense,
-  CustomerPayment
+  CustomerPayment,
+  EndOfDayReport
 } from '../types';
 
 interface DashboardProps {
@@ -45,6 +48,8 @@ interface DashboardProps {
   t: (key: string) => string;
   onNavigate: (module: string) => void;
   hasAccess: (moduleName: string) => boolean;
+  onGenerateEndOfDay?: () => void;
+  endOfDayReports?: EndOfDayReport[];
 }
 
 export default function Dashboard({
@@ -61,7 +66,9 @@ export default function Dashboard({
   language,
   t,
   onNavigate,
-  hasAccess
+  hasAccess,
+  onGenerateEndOfDay,
+  endOfDayReports
 }: DashboardProps) {
 
   // Clock & Calculator States
@@ -275,6 +282,16 @@ export default function Dashboard({
             >
               <TrendingUp className="w-3.5 h-3.5" />
               {language === 'en' ? 'Record Sale' : 'Sabuwar Talla'}
+            </button>
+          )}
+          {hasAccess('settings') && (
+            <button 
+              onClick={onGenerateEndOfDay}
+              className="bg-purple-600 hover:bg-purple-500 text-white font-display font-bold text-xs px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-md flex items-center justify-center gap-1.5 w-full md:w-auto tracking-wide"
+              title="Generate End of Day Report"
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              {language === 'en' ? 'End of Day' : 'Kusan na Yau'}
             </button>
           )}
         </div>
