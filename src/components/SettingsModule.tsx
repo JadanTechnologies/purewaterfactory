@@ -26,12 +26,9 @@ import {
   Check,
   X,
   Lock,
-  LockKeyhole,
-  Unlock,
-  CheckCircle2,
-  Calendar
+  LockKeyhole
 } from 'lucide-react';
-import { FactorySettings, UserRole, UserAccount, CustomRole, LockdownState, EndOfDayReport } from '../types';
+import { FactorySettings, UserRole, UserAccount, CustomRole } from '../types';
 
 interface SettingsModuleProps {
   settings: FactorySettings;
@@ -47,14 +44,6 @@ interface SettingsModuleProps {
   onDeleteUser?: (id: string) => void;
   onSaveRole?: (role: CustomRole) => void;
   onDeleteRole?: (id: string) => void;
-  lockdownState?: {
-    lockdownEndDate: string | null;
-    isLocked: boolean;
-    onActivateLockdown: () => void;
-    onUnlockWithToken: (token: string) => boolean;
-    onClearLockdown: () => void;
-  };
-  endOfDayReports?: EndOfDayReport[];
 }
 
 const AVAILABLE_MODULES = [
@@ -86,56 +75,11 @@ export default function SettingsModule({
   onSaveUser,
   onDeleteUser,
   onSaveRole,
-  onDeleteRole,
-  lockdownState,
-  endOfDayReports
+  onDeleteRole
 }: SettingsModuleProps) {
   
-  // Lockdown token input
-  const [lockdownToken, setLockdownToken] = useState('');
-  
-  // Sound system
-  const playSound = (type: 'success' | 'error' | 'notification') => {
-    if (typeof Audio === 'undefined') return;
-    try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      let frequency: number, duration: number;
-      switch (type) {
-        case 'success':
-          frequency = 523.25;
-          duration = 200;
-          break;
-        case 'error':
-          frequency = 220;
-          duration = 300;
-          break;
-        case 'notification':
-          frequency = 349.23;
-          duration = 150;
-          break;
-        default:
-          frequency = 440;
-          duration = 200;
-      }
-      
-      oscillator.frequency.value = frequency;
-      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
-      oscillator.start();
-      oscillator.stop(audioContext.currentTime + duration / 1000);
-    } catch (e) {
-      // Audio not supported
-    }
-  };
-  
   // Tabs management
-  const [activeSubTab, setActiveSubTab] = useState<'parameters' | 'roles' | 'users' | 'eod'>('parameters');
+  const [activeSubTab, setActiveSubTab] = useState<'parameters' | 'roles' | 'users'>('parameters');
 
   // Parameters form state copy
   const [factoryName, setFactoryName] = useState(settings.factoryName);
@@ -351,8 +295,8 @@ export default function SettingsModule({
               ? 'Configure business logo cards, roles permission parameters, and factory settings.' 
               : 'Gudanar da sunan masana\'anta, iyakar kayayyaki, duba rabe-raben aiki.'}
           </p>
-</div>
-      )}
+        </div>
+      </div>
 
       {/* Sub-Tabs Selector (Admin Only!) */}
       {canWrite && (
@@ -394,19 +338,6 @@ export default function SettingsModule({
             <span className="flex items-center gap-2">
               <Users className="w-3.5 h-3.5" />
               Users & Passwords
-            </span>
-          </button>
-          <button
-            onClick={() => { setActiveSubTab('eod'); setShowRoleForm(false); setShowUserForm(false); }}
-            className={`pb-3 px-4 text-xs font-bold transition-all cursor-pointer border-b-2 whitespace-nowrap ${
-              activeSubTab === 'eod'
-                ? 'border-sky-500 text-white font-black'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <Calendar className="w-3.5 h-3.5" />
-              End of Day Reports
             </span>
           </button>
         </div>
@@ -678,133 +609,8 @@ export default function SettingsModule({
               </button>
             </div>
 
-            {/* Lockdown System Panel */}
-            <div className="bg-slate-800 border border-slate-700/60 rounded-2xl p-5 shadow-lg space-y-3.5">
-              <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-700 pb-2">
-                <Shield className="w-3.5 h-3.5 text-rose-400" /> System Lockdown Control
-              </h3>
-              {lockdownState?.isLocked ? (
-                <div className="space-y-3">
-                  <div className="p-3 bg-red-950/20 border border-red-900/40 rounded-lg">
-                    <p className="text-[11px] text-red-400 font-bold">SYSTEM LOCKED</p>
-                    <p className="text-[10px] text-slate-400 mt-1">
-                      The system is locked. Enter the developer unlock token to regain access.
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold text-slate-400">Developer Unlock Token</label>
-                    <input
-                      type="password"
-                      value={lockdownToken}
-                      onChange={(e) => setLockdownToken(e.target.value)}
-                      placeholder="Enter unlock token"
-                      className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none"
-                    />
-                    <button
-                      onClick={() => {
-                        if (lockdownState.onUnlockWithToken(lockdownToken)) {
-                          playSound('success');
-                          alert('System unlocked successfully!');
-                        } else {
-                          playSound('error');
-                          alert('Invalid token. Contact developer.');
-                        }
-                        setLockdownToken('');
-                      }}
-                      className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-pointer transition-all"
-                    >
-                      <Unlock className="w-3.5 h-3.5" /> Unlock System
-                    </button>
-                  </div>
-                </div>
-              ) : lockdownState?.lockdownEndDate ? (
-                <div className="space-y-3">
-                  <div className="p-3 bg-amber-950/20 border border-amber-700/40 rounded-lg">
-                    <p className="text-[11px] text-amber-400 font-bold">LOCKDOWN ACTIVE</p>
-                    <p className="text-[10px] text-slate-400 mt-1">
-                      Lockdown period ends: {new Date(lockdownState.lockdownEndDate).toDateString()}
-                    </p>
-                  </div>
-                  <button
-                    onClick={lockdownState.onClearLockdown}
-                    className="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-pointer transition-all"
-                  >
-                    <X className="w-3.5 h-3.5" /> Cancel Lockdown
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <p className="text-[11px] text-slate-400 leading-relaxed">
-                    Activate a 7-day system lockdown. After the countdown finishes, the system will lock until unlocked with a developer token.
-                  </p>
-                  <button
-                    onClick={() => {
-                      if (confirm('Activate 7-day system lockdown? The system will lock automatically after the period ends.')) {
-                        lockdownState?.onActivateLockdown();
-                      }
-                    }}
-                    className="w-full py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-pointer transition-all"
-                  >
-                    <Lock className="w-4 h-4" /> Activate Lockdown (7 Days)
-                  </button>
-                </div>
-              )}
-</div>
-            </div>
-
-          </div>
-        </div>
-      )}
-
-      {/* Tab content 3: End of Day Reports */}
-      {activeSubTab === 'eod' && (
-        <div className="space-y-6">
-          <div className="flex justify-between items-center bg-slate-800/20 p-4 rounded-xl border border-slate-700/40">
-            <div>
-              <h3 className="text-sm font-bold text-white">End of Day Reports</h3>
-              <p className="text-xs text-slate-400 mt-0.5">Historical daily summary reports for factory operations.</p>
-            </div>
           </div>
 
-          <div className="bg-slate-800 border border-slate-700/60 rounded-2xl p-5 shadow-lg space-y-4">
-            {endOfDayReports && endOfDayReports.length > 0 ? (
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {endOfDayReports.map(report => (
-                  <div key={report.id} className="bg-slate-900 border border-slate-700 rounded-xl p-4">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <span className="text-xs font-bold text-white block">{report.date}</span>
-                        <span className="text-[10px] text-slate-500">Generated by: {report.generatedBy}</span>
-                      </div>
-                      <span className="text-[10px] text-slate-400">
-                        {new Date(report.closedAt).toLocaleTimeString()}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-[11px]">
-                      <div className="p-2 bg-slate-800/60 rounded-lg">
-                        <span className="text-slate-500 block">Total Sales</span>
-                        <span className="text-emerald-400 font-bold">₦{report.totalSales.toLocaleString()}</span>
-                      </div>
-                      <div className="p-2 bg-slate-800/60 rounded-lg">
-                        <span className="text-slate-500 block">Total Expenses</span>
-                        <span className="text-rose-400 font-bold">₦{report.totalExpenses.toLocaleString()}</span>
-                      </div>
-                      <div className="p-2 bg-slate-800/60 rounded-lg">
-                        <span className="text-slate-500 block">Production</span>
-                        <span className="text-sky-400 font-bold">{report.totalProductionBags} bags</span>
-                      </div>
-                      <div className="p-2 bg-slate-800/60 rounded-lg">
-                        <span className="text-slate-500 block">Closing Stock</span>
-                        <span className="text-amber-400 font-bold">{report.closingStock} bags</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-center py-8 text-slate-500">No End of Day reports generated yet.</p>
-            )}
-          </div>
         </div>
       )}
 
@@ -1131,7 +937,7 @@ export default function SettingsModule({
                       </tr>
                     ))}
                   </tbody>
-</table>
+                </table>
               </div>
             </div>
           )}
