@@ -317,6 +317,7 @@ export default function SalesModule({
                 <option value="Paid">Fully Paid (An biya duka)</option>
                 <option value="Partially Paid">Partially Paid (An biya rabi)</option>
                 <option value="Unpaid">Unpaid (Ba a biya ba)</option>
+                <option value="On Hold">On Hold ( Kawara)</option>
               </select>
             </div>
 
@@ -435,7 +436,9 @@ export default function SalesModule({
                   <td className="py-3 px-3">
                     <span className={`px-2.5 py-1 rounded-full text-[9px] font-display font-bold uppercase tracking-wider ${
                       s.status === 'Paid' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-                      s.status === 'Partially Paid' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                      s.status === 'Partially Paid' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                      s.status === 'On Hold' ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20' :
+                      'bg-red-500/10 text-red-400 border border-red-500/20'
                     }`}>
                       {s.paymentMethod} - {s.status}
                     </span>
