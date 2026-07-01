@@ -714,6 +714,7 @@ const playSound = (type: 'success' | 'warning') => {
                        if (lockdownState?.onUnlockWithToken(lockdownToken)) {
                          playSound('success');
                          alert('System unlocked successfully.');
+                         setLockdownToken('');
                        } else {
                          playSound('warning');
                          alert('Invalid unlock token.');
@@ -724,10 +725,45 @@ const playSound = (type: 'success' | 'warning') => {
                      <Unlock className="w-4 h-4" /> Unlock System
                    </button>
                  </div>
+               ) : lockdownState?.lockdownEndDate ? (
+                 <div className="space-y-3">
+                   <div className="p-3 bg-amber-950/20 border border-amber-700/40 rounded-lg">
+                     <p className="text-[11px] text-amber-400 font-bold">LOCKDOWN SCHEDULED</p>
+                     <p className="text-[10px] text-slate-400 mt-1">
+                       The system is scheduled to lock automatically on {new Date(lockdownState.lockdownEndDate).toDateString()}.
+                     </p>
+                   </div>
+                   <button
+                     onClick={() => {
+                       if (confirm('Cancel the scheduled lockdown? This will reset the lockdown timer.')) {
+                         lockdownState?.onClearLockdown();
+                         playSound('success');
+                         alert('Scheduled lockdown cancelled.');
+                       }
+                     }}
+                     className="w-full py-2.5 bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                   >
+                     <X className="w-4 h-4" /> Cancel Scheduled Lockdown
+                   </button>
+                 </div>
                ) : (
-                 <p className="text-[11px] text-slate-400 leading-relaxed">
-                   System lockdown is currently inactive. No restrictions in place.
-                 </p>
+                 <div className="space-y-3">
+                   <p className="text-[11px] text-slate-400 leading-relaxed">
+                     Activate a 7-day system lockdown. After the countdown finishes, the application will lock until it is unlocked with a developer token.
+                   </p>
+                   <button
+                     onClick={() => {
+                       if (confirm('Activate 7-day system lockdown? The application will lock automatically after the countdown.')) {
+                         lockdownState?.onActivateLockdown();
+                         playSound('success');
+                         alert('Lockdown countdown started. The system will lock after 7 days.');
+                       }
+                     }}
+                     className="w-full py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                   >
+                     <Lock className="w-4 h-4" /> Activate Lockdown (7 Days)
+                   </button>
+                 </div>
                )}
              </div>
 

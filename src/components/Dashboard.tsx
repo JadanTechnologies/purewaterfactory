@@ -170,6 +170,28 @@ export default function Dashboard({
     return false;
   });
 
+  const getReorderRecommendation = (item: InventoryItem) => {
+    switch (item.type) {
+      case 'Nylon': {
+        const target = 150;
+        const recommended = Math.max(target - item.quantity, 20);
+        return `${recommended} ${item.unit} reorder recommended to restore nylon buffer stock.`;
+      }
+      case 'Pure Water Bag': {
+        const target = 1200;
+        const recommended = Math.max(target - item.quantity, 200);
+        return `${recommended} ${item.unit} reorder recommended to avoid water bag shortages.`;
+      }
+      case 'Chemical': {
+        const target = 50;
+        const recommended = Math.max(target - item.quantity, 10);
+        return `${recommended} ${item.unit} reorder recommended to maintain chemical supply.`;
+      }
+      default:
+        return `Review stock levels and reorder if needed.`;
+    }
+  };
+
   // Simple SVG Charts Helper Data
   // Monthly Sales Chart Data (Mocking last 6 months)
   const monthlySalesData = [
@@ -568,17 +590,23 @@ export default function Dashboard({
             </h3>
 
             {lowStockAlerts.length > 0 ? (
-              <div className="space-y-2 mb-4" id="stock-alerts-list">
+              <div className="space-y-4 mb-4" id="stock-alerts-list">
                 {lowStockAlerts.map(item => (
-                  <div key={item.id} className="bg-slate-900/60 border border-slate-700/40 p-3 rounded-xl flex items-start gap-3">
-                    <div className="p-2 rounded-lg bg-rose-500/10 text-rose-400 mt-0.5">
-                      <AlertTriangle className="w-4 h-4" />
+                  <div key={item.id} className="bg-slate-900/60 border border-slate-700/40 p-3 rounded-xl space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-lg bg-rose-500/10 text-rose-400 mt-0.5">
+                        <AlertTriangle className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1">
+                        <span className="text-xs font-display font-bold text-white block">{item.name}</span>
+                        <span className="text-[10px] font-sans text-slate-400 block mt-0.5">
+                          {language === 'en' ? 'Only' : 'Sauran'} <span className="text-rose-400 font-mono font-semibold">{item.quantity} {item.unit}</span> left in stock!
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-xs font-display font-bold text-white block">{item.name}</span>
-                      <span className="text-[10px] font-sans text-slate-400 block mt-0.5">
-                        {language === 'en' ? 'Only' : 'Sauran'} <span className="text-rose-400 font-mono font-semibold">{item.quantity} {item.unit}</span> left in stock!
-                      </span>
+                    <div className="bg-slate-950/60 border border-slate-700/40 rounded-xl p-3 text-[10px] text-slate-300">
+                      <span className="font-semibold text-slate-100">{language === 'en' ? 'Suggested reorder' : 'Shawarwarin sake oda'}:</span>
+                      <p className="mt-1 text-slate-300">{getReorderRecommendation(item)}</p>
                     </div>
                   </div>
                 ))}
