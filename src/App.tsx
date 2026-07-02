@@ -518,6 +518,24 @@ export default function App() {
     }
   };
 
+  const handleToggleTenantStatus = (tenantId: string, suspended: boolean) => {
+    const updated = db.suspendTenant(tenantId, suspended);
+    if (updated) {
+      syncDatabaseStates();
+      playSound('notification');
+      showPopupNotification(`Tenant ${updated.name} ${suspended ? 'suspended' : 'reactivated'}`, 'success');
+    }
+  };
+
+  const handleRefreshTenantToken = (tenantId: string) => {
+    const refreshed = db.updateTenant(tenantId, { accessToken: `tok-${Math.random().toString(36).slice(2, 10)}` });
+    if (refreshed) {
+      syncDatabaseStates();
+      playSound('success');
+      showPopupNotification(`Token refreshed for ${refreshed.name}`, 'success');
+    }
+  };
+
   const handleDeleteRole = (id: string) => {
     db.deleteRole(id);
     syncDatabaseStates();
@@ -1174,6 +1192,11 @@ export default function App() {
                   onSaveRole={handleSaveRole}
                   onDeleteRole={handleDeleteRole}
                   onCreateTenant={handleCreateTenant}
+                  ownerStats={db.getOwnerDashboardStats()}
+                  ownerReports={db.getOwnerReports()}
+                  tenants={tenants}
+                  onToggleTenantStatus={handleToggleTenantStatus}
+                  onRefreshTenantToken={handleRefreshTenantToken}
                   lockdownState={{
                     lockdownEndDate: lockdownState.lockdownEndDate,
                     isLocked: lockdownState.isLocked,

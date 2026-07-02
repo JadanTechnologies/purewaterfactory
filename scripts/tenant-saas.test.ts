@@ -41,4 +41,14 @@ if (scopedSettings.factoryName !== 'Acme Water Ltd') {
   throw new Error('tenant data was not isolated correctly');
 }
 
+const ownerStats = db.getOwnerDashboardStats();
+if (ownerStats.totalTenants < 1 || ownerStats.totalTokensGenerated < 1 || ownerStats.activeTenants < 1) {
+  throw new Error('owner dashboard metrics were not generated correctly');
+}
+
+const ownerReports = db.getOwnerReports();
+if (!ownerReports.recentActivity || ownerReports.recentActivity.length < 0) {
+  throw new Error('owner reports were not generated correctly');
+}
+
 console.log('tenant test passed');

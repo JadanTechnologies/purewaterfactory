@@ -843,6 +843,34 @@ export const db = {
     const t = localStorage.getItem(KEYS.TENANTS);
     return t ? JSON.parse(t) : DEFAULT_TENANTS;
   },
+  getOwnerDashboardStats() {
+    const tenants = this.getTenants();
+    const activeTenants = tenants.filter(t => t.status === 'active').length;
+    const inactiveTenants = tenants.filter(t => t.status !== 'active').length;
+    const totalTokensGenerated = tenants.reduce((sum, tenant) => sum + (tenant.accessToken ? 1 : 0), 0);
+    const totalRevenueGenerated = tenants.reduce((sum, tenant) => sum + (tenant.plan === 'One-Time Purchase' ? 50000 : 0), 0);
+    return {
+      totalTenants: tenants.length,
+      activeTenants,
+      inactiveTenants,
+      totalTokensGenerated,
+      totalRevenueGenerated
+    };
+  },
+  getOwnerReports() {
+    const tenants = this.getTenants();
+    const recentActivity = tenants.slice(-5).map(tenant => ({
+      title: `${tenant.name} portal ${tenant.status}`,
+      detail: `Owner ${tenant.ownerName} • Token ${tenant.accessToken}`,
+      timestamp: tenant.createdAt
+    }));
+    const growth = Math.max(1, Math.round((tenants.length / Math.max(1, tenants.length)) * 100));
+    return {
+      recentActivity,
+      growth,
+      platformHealth: tenants.some(t => t.status !== 'active') ? 'Needs attention' : 'Stable'
+    };
+  },
   getTenantBySubdomain(subdomain: string): Tenant | null {
     const tenants = this.getTenants();
     return tenants.find(t => t.subdomain.toLowerCase() === subdomain.toLowerCase()) || null;

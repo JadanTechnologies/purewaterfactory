@@ -29,9 +29,18 @@ import {
   LockKeyhole,
   Unlock,
   Calendar,
-  Printer
+  Printer,
+  BarChart3,
+  Sparkles,
+  Building2,
+  RefreshCw,
+  Zap,
+  CreditCard,
+  BadgeCheck,
+  Globe2,
+  ArrowRight
 } from 'lucide-react';
-import { FactorySettings, UserRole, UserAccount, CustomRole, LockdownState, EndOfDayReport } from '../types';
+import { FactorySettings, UserRole, UserAccount, CustomRole, LockdownState, EndOfDayReport, Tenant } from '../types';
 
 interface SettingsModuleProps {
   settings: FactorySettings;
@@ -50,6 +59,11 @@ interface SettingsModuleProps {
   onCreateTenant?: (tenantName: string, ownerName: string, ownerEmail: string, slug: string) => void;
   lockdownState?: { lockdownEndDate: string | null; isLocked: boolean; onActivateLockdown: () => void; onUnlockWithToken: (token: string) => boolean; onClearLockdown: () => void; };
   endOfDayReports?: EndOfDayReport[];
+  ownerStats?: { totalTenants: number; activeTenants: number; inactiveTenants: number; totalTokensGenerated: number; totalRevenueGenerated: number };
+  ownerReports?: { recentActivity: Array<{ title: string; detail: string; timestamp: string }>; growth: number; platformHealth: string };
+  tenants?: Tenant[];
+  onToggleTenantStatus?: (tenantId: string, suspended: boolean) => void;
+  onRefreshTenantToken?: (tenantId: string) => void;
 }
 
 const AVAILABLE_MODULES = [
@@ -84,7 +98,12 @@ export default function SettingsModule({
   onDeleteRole,
   onCreateTenant,
   lockdownState,
-  endOfDayReports = []
+  endOfDayReports = [],
+  ownerStats,
+  ownerReports,
+  tenants = [],
+  onToggleTenantStatus,
+  onRefreshTenantToken
 }: SettingsModuleProps) {
   
   // Tabs management
@@ -370,27 +389,140 @@ const playSound = (type: 'success' | 'warning') => {
     <div className="space-y-6" id="settings-module">
       
       {activeRole === 'Administrator' && (
-        <div className="bg-slate-800/40 border border-slate-700/40 rounded-xl p-4 space-y-4">
-          <div className="flex items-center gap-2 text-white font-semibold">
-            <Shield className="w-4 h-4 text-emerald-400" />
-            {language === 'en' ? 'Software Owner Portal Console' : 'Sashin Super Admin'}
-          </div>
-          <p className="text-sm text-slate-400">
-            {language === 'en'
-              ? 'Create a new company portal and tenant admin credentials so the business can sign in and manage its own data.'
-              : 'Ƙirƙiri sabuwar portal na kamfani da bayanan shiga na mai kula da tenant don kasuwanci ya shiga ya sarrafa bayanansa.'}
-          </p>
-          <form onSubmit={handleCreateTenantSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <input value={tenantName} onChange={(e) => setTenantName(e.target.value)} placeholder={language === 'en' ? 'Company name' : 'Sunan kamfani'} className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
-            <input value={tenantOwnerName} onChange={(e) => setTenantOwnerName(e.target.value)} placeholder={language === 'en' ? 'Owner full name' : 'Sunan mai mallaka'} className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
-            <input value={tenantOwnerEmail} onChange={(e) => setTenantOwnerEmail(e.target.value)} placeholder={language === 'en' ? 'Owner email' : 'Imel na mai mallaka'} className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
-            <input value={tenantSlug} onChange={(e) => setTenantSlug(e.target.value)} placeholder={language === 'en' ? 'portal-slug' : 'slug-portal'} className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
-            <div className="md:col-span-2">
-              <button type="submit" className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500">
-                {language === 'en' ? 'Create Company Portal' : 'Ƙirƙiri Portal na Kamfani'}
-              </button>
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-sky-500/30 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-5 shadow-2xl">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <div className="flex items-center gap-2 text-sky-300">
+                  <Sparkles className="w-4 h-4" />
+                  <span className="text-xs font-semibold uppercase tracking-[0.3em]">Software Owner Command Center</span>
+                </div>
+                <h2 className="mt-2 text-2xl font-bold text-white">Operate your SaaS platform with clarity and control</h2>
+                <p className="mt-2 max-w-2xl text-sm text-slate-400">
+                  Monitor tenants, issue portal access, manage platform tools, and keep your software growing from a single elegant dashboard.
+                </p>
+              </div>
+              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">
+                <div className="flex items-center gap-2"><BadgeCheck className="w-4 h-4" /> Platform health: stable</div>
+              </div>
             </div>
-          </form>
+
+            <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+              <div className="rounded-xl border border-slate-700 bg-slate-950/80 p-3">
+                <div className="flex items-center justify-between text-slate-400"><span>Total tenants</span><Building2 className="w-4 h-4 text-sky-400" /></div>
+                <div className="mt-2 text-2xl font-bold text-white">{ownerStats?.totalTenants ?? 0}</div>
+              </div>
+              <div className="rounded-xl border border-slate-700 bg-slate-950/80 p-3">
+                <div className="flex items-center justify-between text-slate-400"><span>Tokens generated</span><Key className="w-4 h-4 text-emerald-400" /></div>
+                <div className="mt-2 text-2xl font-bold text-white">{ownerStats?.totalTokensGenerated ?? 0}</div>
+              </div>
+              <div className="rounded-xl border border-slate-700 bg-slate-950/80 p-3">
+                <div className="flex items-center justify-between text-slate-400"><span>Active tenants</span><Shield className="w-4 h-4 text-emerald-400" /></div>
+                <div className="mt-2 text-2xl font-bold text-white">{ownerStats?.activeTenants ?? 0}</div>
+              </div>
+              <div className="rounded-xl border border-slate-700 bg-slate-950/80 p-3">
+                <div className="flex items-center justify-between text-slate-400"><span>Inactive tenants</span><Lock className="w-4 h-4 text-amber-400" /></div>
+                <div className="mt-2 text-2xl font-bold text-white">{ownerStats?.inactiveTenants ?? 0}</div>
+              </div>
+              <div className="rounded-xl border border-slate-700 bg-slate-950/80 p-3">
+                <div className="flex items-center justify-between text-slate-400"><span>Revenue generated</span><DollarSign className="w-4 h-4 text-sky-400" /></div>
+                <div className="mt-2 text-2xl font-bold text-white">₦{(ownerStats?.totalRevenueGenerated ?? 0).toLocaleString()}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+            <div className="rounded-2xl border border-slate-700/60 bg-slate-800/70 p-4">
+              <div className="flex items-center gap-2 text-white font-semibold">
+                <Plus className="w-4 h-4 text-emerald-400" /> Create new business tenant
+              </div>
+              <p className="mt-2 text-sm text-slate-400">Create a new tenant portal and generate a tenant-admin login link in one action.</p>
+              <form onSubmit={handleCreateTenantSubmit} className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+                <input value={tenantName} onChange={(e) => setTenantName(e.target.value)} placeholder={language === 'en' ? 'Company name' : 'Sunan kamfani'} className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+                <input value={tenantOwnerName} onChange={(e) => setTenantOwnerName(e.target.value)} placeholder={language === 'en' ? 'Owner full name' : 'Sunan mai mallaka'} className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+                <input value={tenantOwnerEmail} onChange={(e) => setTenantOwnerEmail(e.target.value)} placeholder={language === 'en' ? 'Owner email' : 'Imel na mai mallaka'} className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+                <input value={tenantSlug} onChange={(e) => setTenantSlug(e.target.value)} placeholder={language === 'en' ? 'portal-slug' : 'slug-portal'} className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+                <div className="md:col-span-2">
+                  <button type="submit" className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500">
+                    {language === 'en' ? 'Create Company Portal' : 'Ƙirƙiri Portal na Kamfani'}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <div className="rounded-2xl border border-slate-700/60 bg-slate-800/70 p-4">
+              <div className="flex items-center gap-2 text-white font-semibold">
+                <Zap className="w-4 h-4 text-sky-400" /> Platform tools
+              </div>
+              <div className="mt-4 space-y-2">
+                <button className="flex w-full items-center justify-between rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-sm text-slate-200"><span>Launch upgrade center</span><ArrowRight className="w-4 h-4" /></button>
+                <button className="flex w-full items-center justify-between rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-sm text-slate-200"><span>Send platform announcement</span><Globe2 className="w-4 h-4" /></button>
+                <button className="flex w-full items-center justify-between rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-sm text-slate-200"><span>Review tenant access tokens</span><RefreshCw className="w-4 h-4" /></button>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-700/60 bg-slate-800/70 p-4">
+            <div className="flex items-center gap-2 text-white font-semibold">
+              <BarChart3 className="w-4 h-4 text-sky-400" /> Tenant overview
+            </div>
+            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {tenants.length === 0 ? (
+                <div className="md:col-span-2 xl:col-span-3 rounded-lg border border-dashed border-slate-700 p-3 text-sm text-slate-400">No tenant portals created yet.</div>
+              ) : tenants.map((tenant) => (
+                <div key={tenant.id} className="rounded-xl border border-slate-700 bg-slate-900/70 p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="font-semibold text-white">{tenant.name}</div>
+                    <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${tenant.status === 'active' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-amber-500/15 text-amber-300'}`}>{tenant.status}</span>
+                  </div>
+                  <div className="mt-2 text-xs text-slate-400">Owner: {tenant.ownerName}</div>
+                  <div className="mt-1 text-xs text-slate-400">Portal: {tenant.slug}</div>
+                  <div className="mt-1 text-xs text-slate-400">Token: {tenant.accessToken}</div>
+                  <div className="mt-3 flex gap-2">
+                    <button onClick={() => onToggleTenantStatus?.(tenant.id, tenant.status === 'active')} className="rounded-lg border border-slate-700 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-800">
+                      {tenant.status === 'active' ? 'Suspend' : 'Reactivate'}
+                    </button>
+                    <button onClick={() => onRefreshTenantToken?.(tenant.id)} className="rounded-lg border border-sky-600 px-2 py-1 text-[11px] text-sky-200 hover:bg-slate-800">
+                      Refresh token
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-700/60 bg-slate-800/70 p-4">
+            <div className="flex items-center gap-2 text-white font-semibold">
+              <FileText className="w-4 h-4 text-sky-400" /> Software owner reports
+            </div>
+            <div className="mt-4 grid gap-3 md:grid-cols-3">
+              <div className="rounded-xl border border-slate-700 bg-slate-900/70 p-3">
+                <div className="text-xs uppercase tracking-wider text-slate-400">Platform growth</div>
+                <div className="mt-2 text-2xl font-bold text-white">+{ownerReports?.growth ?? 0}%</div>
+              </div>
+              <div className="rounded-xl border border-slate-700 bg-slate-900/70 p-3">
+                <div className="text-xs uppercase tracking-wider text-slate-400">Platform health</div>
+                <div className="mt-2 text-lg font-semibold text-emerald-300">{ownerReports?.platformHealth ?? 'Stable'}</div>
+              </div>
+              <div className="rounded-xl border border-slate-700 bg-slate-900/70 p-3">
+                <div className="text-xs uppercase tracking-wider text-slate-400">Recent activity</div>
+                <div className="mt-2 text-sm text-slate-200">{ownerReports?.recentActivity?.length ?? 0} recent tenant events</div>
+              </div>
+            </div>
+            <div className="mt-4 space-y-2">
+              {(ownerReports?.recentActivity ?? []).map((item, index) => (
+                <div key={index} className="rounded-xl border border-slate-700 bg-slate-900/70 p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-white">{item.title}</div>
+                      <div className="text-xs text-slate-400">{item.detail}</div>
+                    </div>
+                    <div className="text-[11px] text-slate-500">{item.timestamp}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
