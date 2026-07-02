@@ -390,7 +390,7 @@ const playSound = (type: 'success' | 'warning') => {
       
       {activeRole === 'Administrator' && (
         <div className="space-y-4">
-          <div className="rounded-2xl border border-sky-500/30 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-5 shadow-2xl">
+          <div className="rounded-3xl border border-sky-500/30 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 p-6 shadow-2xl">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <div className="flex items-center gap-2 text-sky-300">
@@ -407,7 +407,7 @@ const playSound = (type: 'success' | 'warning') => {
               </div>
             </div>
 
-            <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+            <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
               <div className="rounded-xl border border-slate-700 bg-slate-950/80 p-3">
                 <div className="flex items-center justify-between text-slate-400"><span>Total tenants</span><Building2 className="w-4 h-4 text-sky-400" /></div>
                 <div className="mt-2 text-2xl font-bold text-white">{ownerStats?.totalTenants ?? 0}</div>
@@ -432,7 +432,7 @@ const playSound = (type: 'success' | 'warning') => {
           </div>
 
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-            <div className="rounded-2xl border border-slate-700/60 bg-slate-800/70 p-4">
+            <div className="rounded-2xl border border-slate-700/60 bg-slate-800/70 p-4 shadow-lg">
               <div className="flex items-center gap-2 text-white font-semibold">
                 <Plus className="w-4 h-4 text-emerald-400" /> Create new business tenant
               </div>
@@ -450,7 +450,7 @@ const playSound = (type: 'success' | 'warning') => {
               </form>
             </div>
 
-            <div className="rounded-2xl border border-slate-700/60 bg-slate-800/70 p-4">
+            <div className="rounded-2xl border border-slate-700/60 bg-slate-800/70 p-4 shadow-lg">
               <div className="flex items-center gap-2 text-white font-semibold">
                 <Zap className="w-4 h-4 text-sky-400" /> Platform tools
               </div>
@@ -462,7 +462,7 @@ const playSound = (type: 'success' | 'warning') => {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-700/60 bg-slate-800/70 p-4">
+          <div className="rounded-2xl border border-slate-700/60 bg-slate-800/70 p-4 shadow-lg">
             <div className="flex items-center gap-2 text-white font-semibold">
               <BarChart3 className="w-4 h-4 text-sky-400" /> Tenant overview
             </div>
@@ -491,7 +491,7 @@ const playSound = (type: 'success' | 'warning') => {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-700/60 bg-slate-800/70 p-4">
+          <div className="rounded-2xl border border-slate-700/60 bg-slate-800/70 p-4 shadow-lg">
             <div className="flex items-center gap-2 text-white font-semibold">
               <FileText className="w-4 h-4 text-sky-400" /> Software owner reports
             </div>

@@ -978,6 +978,16 @@ export const db = {
     }
     return null;
   },
+  authenticateTenantUser(email: string, password: string): { user: UserAccount | null; tenant: Tenant | null } {
+    const tenants = this.getTenants();
+    for (const tenant of tenants) {
+      const user = this.getUsersForTenant(tenant.id).find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+      if (user) {
+        return { user, tenant };
+      }
+    }
+    return { user: null, tenant: null };
+  },
   getEndOfDayReports(): EndOfDayReport[] {
     const r = localStorage.getItem(getScopeKey(KEYS.END_OF_DAY_REPORTS));
     return r ? JSON.parse(r) : [];

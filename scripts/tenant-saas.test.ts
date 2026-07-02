@@ -51,4 +51,9 @@ if (!ownerReports.recentActivity || ownerReports.recentActivity.length < 0) {
   throw new Error('owner reports were not generated correctly');
 }
 
+const tenantLogin = db.authenticateTenantUser('acme-water-admin@acme-water.com', 'acmewater@2026');
+if (!tenantLogin || tenantLogin.user?.tenantId !== tenant.id) {
+  throw new Error('tenant login credentials were not recognized correctly');
+}
+
 console.log('tenant test passed');

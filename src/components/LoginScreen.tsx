@@ -29,11 +29,17 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
 
     const superAdmin = db.authenticateSuperAdmin(email, password);
     if (superAdmin) {
-      onLogin(superAdmin);
+      onLogin(superAdmin, 'tenant-root');
       return;
     }
 
-    setError('Invalid software owner credentials.');
+    const tenantLogin = db.authenticateTenantUser(email, password);
+    if (tenantLogin.user && tenantLogin.tenant) {
+      onLogin(tenantLogin.user, tenantLogin.tenant.id);
+      return;
+    }
+
+    setError('Invalid credentials. Please use your software-owner or tenant-admin login details.');
   };
 
   const handleForgotSubmit = (e: React.FormEvent) => {
@@ -91,7 +97,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
               </div>
 
               <div className="rounded-xl border border-sky-500/30 bg-sky-950/30 px-3 py-2 text-sm text-sky-200">
-                This sign-in is reserved for the software owner to manage portals and tenant admins.
+                Use your software-owner login for the platform console, or use a tenant-admin login to open that company’s workspace.
               </div>
 
               <div className="space-y-2">
@@ -145,7 +151,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
                 className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white font-display font-bold tracking-wide text-sm transition-all shadow-lg hover:shadow-sky-500/10 active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
                 id="login-submit-btn"
               >
-                <Shield className="w-4 h-4" /> Sign in as Software Owner
+                <Shield className="w-4 h-4" /> Sign in to your workspace
               </button>
             </form>
           ) : (
