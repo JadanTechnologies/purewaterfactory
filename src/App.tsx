@@ -58,7 +58,8 @@ import {
   FactorySettings,
   UserAccount,
   CustomRole,
-  EndOfDayReport
+  EndOfDayReport,
+  Tenant
 } from './types';
 
 // Importing modules
@@ -140,7 +141,7 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserAccount>(() => {
     const savedUsers = db.getUsers();
-    return savedUsers[0] || { id: 'usr-1', name: 'Adamu Ibrahim', email: 'admin@nile.com', phone: '+234 803 111 2222', role: 'Administrator', password: 'password123' };
+    return savedUsers[0] || { id: 'usr-1', name: 'Adamu Ibrahim', email: 'admin@nile.com', phone: '+234 803 111 2222', role: 'Administrator', password: 'password123', isSuperAdmin: true, tenantId: 'tenant-root' };
   });
   const [authenticatedRole, setAuthenticatedRole] = useState<string>('Administrator');
   const [activeModule, setActiveModule] = useState('dashboard');
@@ -177,6 +178,8 @@ export default function App() {
   const [notifications, setNotifications] = useState<NotificationItem[]>(() => db.getNotifications());
   const [users, setUsers] = useState<UserAccount[]>(() => db.getUsers());
   const [roles, setRoles] = useState<CustomRole[]>(() => db.getRoles());
+  const [tenants, setTenants] = useState<Tenant[]>(() => db.getTenants());
+  const [activeTenant, setActiveTenant] = useState<Tenant | null>(() => db.getActiveTenant());
 
   // End of Day state
   const [endOfDayReports, setEndOfDayReports] = useState<EndOfDayReport[]>(() => db.getEndOfDayReports());
@@ -213,6 +216,8 @@ export default function App() {
     setNotifications(db.getNotifications());
     setUsers(db.getUsers());
     setRoles(db.getRoles());
+    setTenants(db.getTenants());
+    setActiveTenant(db.getActiveTenant());
     setLockdownState(db.getLockdownState());
     setEndOfDayReports(db.getEndOfDayReports());
   };
@@ -478,6 +483,30 @@ export default function App() {
     syncDatabaseStates();
     playSound('notification');
     showPopupNotification(`Role ${role.name} saved`, 'success');
+  };
+
+  const handleCreateTenant = (tenantName: string, ownerName: string, ownerEmail: string, slug: string) => {
+    const created = db.createTenant({
+      name: tenantName,
+      slug,
+      ownerName,
+      ownerEmail,
+      plan: 'One-Time Purchase',
+      status: 'active'
+    });
+    syncDatabaseStates();
+    playSound('success');
+    showPopupNotification(`Portal created for ${created.name}`, 'success');
+    return created;
+  };
+
+  const handleSwitchTenant = (tenantId: string) => {
+    const switched = db.switchTenant(tenantId);
+    if (switched) {
+      syncDatabaseStates();
+      playSound('notification');
+      showPopupNotification('Portal switched successfully', 'success');
+    }
   };
 
   const handleDeleteRole = (id: string) => {
@@ -767,6 +796,23 @@ export default function App() {
                   {r.name.split(' ')[0]}
                 </button>
               ))}
+            </div>
+          )}
+
+          {currentUser.isSuperAdmin && (
+            <div className="hidden lg:flex items-center gap-2 bg-slate-950 border border-slate-800 px-2 py-1 rounded-xl">
+              <span className="text-[10px] uppercase text-slate-500">Portal</span>
+              <select
+                value={activeTenant?.id || 'tenant-root'}
+                onChange={(e) => handleSwitchTenant(e.target.value)}
+                className="bg-transparent text-xs text-slate-200 focus:outline-none"
+              >
+                {tenants.map((tenant) => (
+                  <option key={tenant.id} value={tenant.id} className="bg-slate-900 text-slate-200">
+                    {tenant.name}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
 
@@ -1127,6 +1173,7 @@ export default function App() {
                   onDeleteUser={handleDeleteUser}
                   onSaveRole={handleSaveRole}
                   onDeleteRole={handleDeleteRole}
+                  onCreateTenant={handleCreateTenant}
                   lockdownState={{
                     lockdownEndDate: lockdownState.lockdownEndDate,
                     isLocked: lockdownState.isLocked,

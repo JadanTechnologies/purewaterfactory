@@ -47,6 +47,7 @@ interface SettingsModuleProps {
   onDeleteUser?: (id: string) => void;
   onSaveRole?: (role: CustomRole) => void;
   onDeleteRole?: (id: string) => void;
+  onCreateTenant?: (tenantName: string, ownerName: string, ownerEmail: string, slug: string) => void;
   lockdownState?: { lockdownEndDate: string | null; isLocked: boolean; onActivateLockdown: () => void; onUnlockWithToken: (token: string) => boolean; onClearLockdown: () => void; };
   endOfDayReports?: EndOfDayReport[];
 }
@@ -81,6 +82,7 @@ export default function SettingsModule({
   onDeleteUser,
   onSaveRole,
   onDeleteRole,
+  onCreateTenant,
   lockdownState,
   endOfDayReports = []
 }: SettingsModuleProps) {
@@ -173,6 +175,10 @@ const playSound = (type: 'success' | 'warning') => {
   const [userRole, setUserRole] = useState('');
   const [userPassword, setUserPassword] = useState('');
   const [showUserForm, setShowUserForm] = useState(false);
+  const [tenantName, setTenantName] = useState('');
+  const [tenantOwnerName, setTenantOwnerName] = useState('');
+  const [tenantOwnerEmail, setTenantOwnerEmail] = useState('');
+  const [tenantSlug, setTenantSlug] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -345,9 +351,49 @@ const playSound = (type: 'success' | 'warning') => {
     }
   };
 
+  const handleCreateTenantSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tenantName.trim() || !tenantOwnerName.trim() || !tenantOwnerEmail.trim() || !tenantSlug.trim()) {
+      alert('Please fill in all portal details.');
+      return;
+    }
+    if (onCreateTenant) {
+      onCreateTenant(tenantName.trim(), tenantOwnerName.trim(), tenantOwnerEmail.trim(), tenantSlug.trim().toLowerCase());
+      setTenantName('');
+      setTenantOwnerName('');
+      setTenantOwnerEmail('');
+      setTenantSlug('');
+    }
+  };
+
   return (
     <div className="space-y-6" id="settings-module">
       
+      {activeRole === 'Administrator' && (
+        <div className="bg-slate-800/40 border border-slate-700/40 rounded-xl p-4 space-y-4">
+          <div className="flex items-center gap-2 text-white font-semibold">
+            <Shield className="w-4 h-4 text-emerald-400" />
+            {language === 'en' ? 'Super Admin SaaS Portal Console' : 'Sashin Super Admin'}
+          </div>
+          <p className="text-sm text-slate-400">
+            {language === 'en'
+              ? 'Create a new company portal with one-time purchase access so each business can manage its own users, roles, and data.'
+              : 'Ƙirƙiri sabuwar portal na kamfani tare da damar siye sau ɗaya don kowane kasuwanci ya sarrafa masu amfani, matsayi, da bayanansa.'}
+          </p>
+          <form onSubmit={handleCreateTenantSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <input value={tenantName} onChange={(e) => setTenantName(e.target.value)} placeholder={language === 'en' ? 'Company name' : 'Sunan kamfani'} className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+            <input value={tenantOwnerName} onChange={(e) => setTenantOwnerName(e.target.value)} placeholder={language === 'en' ? 'Owner full name' : 'Sunan mai mallaka'} className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+            <input value={tenantOwnerEmail} onChange={(e) => setTenantOwnerEmail(e.target.value)} placeholder={language === 'en' ? 'Owner email' : 'Imel na mai mallaka'} className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+            <input value={tenantSlug} onChange={(e) => setTenantSlug(e.target.value)} placeholder={language === 'en' ? 'portal-slug' : 'slug-portal'} className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+            <div className="md:col-span-2">
+              <button type="submit" className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500">
+                {language === 'en' ? 'Create Company Portal' : 'Ƙirƙiri Portal na Kamfani'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-800/40 p-4 rounded-xl border border-slate-700/40">
         <div>

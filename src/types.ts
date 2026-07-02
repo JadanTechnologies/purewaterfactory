@@ -183,6 +183,17 @@ export interface CustomRole {
   allowedModules: string[]; // List of module names, e.g. ['dashboard', 'sales']
 }
 
+export interface Tenant {
+  id: string;
+  name: string;
+  slug: string;
+  ownerName: string;
+  ownerEmail: string;
+  plan: 'One-Time Purchase';
+  status: 'active' | 'inactive';
+  createdAt: string;
+}
+
 export interface UserAccount {
   id: string;
   name: string;
@@ -190,6 +201,8 @@ export interface UserAccount {
   phone: string;
   role: string; // can be standard or custom role name
   password?: string;
+  tenantId?: string;
+  isSuperAdmin?: boolean;
 }
 
 export interface AuditLog {

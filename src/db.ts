@@ -23,7 +23,8 @@ import {
   UserAccount,
   CustomRole,
   LockdownState,
-  EndOfDayReport
+  EndOfDayReport,
+  Tenant
 } from './types';
 
 // Storage keys
@@ -45,7 +46,9 @@ const KEYS = {
   NOTIFICATIONS: 'pwfms_notifications',
   USERS: 'pwfms_users',
   ROLES: 'pwfms_roles',
-  END_OF_DAY_REPORTS: 'pwfms_endofday_reports'
+  END_OF_DAY_REPORTS: 'pwfms_endofday_reports',
+  TENANTS: 'pwfms_tenants',
+  ACTIVE_TENANT: 'pwfms_active_tenant'
 };
 
 const DEFAULT_SETTINGS: FactorySettings = {
@@ -63,13 +66,26 @@ const DEFAULT_SETTINGS: FactorySettings = {
 };
 
 const DEFAULT_USERS: UserAccount[] = [
-  { id: 'usr-1', name: 'Adamu Ibrahim', email: 'admin@nile.com', phone: '+234 803 111 2222', role: 'Administrator', password: 'password123' },
-  { id: 'usr-2', name: 'Garba Shehu', email: 'manager@nile.com', phone: '+234 803 222 3333', role: 'Factory Manager', password: 'password123' },
-  { id: 'usr-3', name: 'Shehu Garba', email: 'production@nile.com', phone: '+234 803 333 4444', role: 'Production Officer', password: 'password123' },
-  { id: 'usr-4', name: 'Maryam Yusuf', email: 'sales@nile.com', phone: '+234 803 444 5555', role: 'Sales & Cashier Officer', password: 'password123' },
-  { id: 'usr-5', name: 'Abubakar Sani', email: 'store@nile.com', phone: '+234 803 555 6666', role: 'Store Keeper', password: 'password123' },
-  { id: 'usr-6', name: 'Kabir Aliyu', email: 'cashier1@nile.com', phone: '+234 803 777 8888', role: 'Cashier', password: 'password123' },
-  { id: 'usr-7', name: 'Bello Umar', email: 'sales1@nile.com', phone: '+234 803 999 0000', role: 'Sales Officer', password: 'password123' }
+  { id: 'usr-1', name: 'Adamu Ibrahim', email: 'admin@nile.com', phone: '+234 803 111 2222', role: 'Administrator', password: 'password123', isSuperAdmin: true, tenantId: 'tenant-root' },
+  { id: 'usr-2', name: 'Garba Shehu', email: 'manager@nile.com', phone: '+234 803 222 3333', role: 'Factory Manager', password: 'password123', tenantId: 'tenant-root' },
+  { id: 'usr-3', name: 'Shehu Garba', email: 'production@nile.com', phone: '+234 803 333 4444', role: 'Production Officer', password: 'password123', tenantId: 'tenant-root' },
+  { id: 'usr-4', name: 'Maryam Yusuf', email: 'sales@nile.com', phone: '+234 803 444 5555', role: 'Sales & Cashier Officer', password: 'password123', tenantId: 'tenant-root' },
+  { id: 'usr-5', name: 'Abubakar Sani', email: 'store@nile.com', phone: '+234 803 555 6666', role: 'Store Keeper', password: 'password123', tenantId: 'tenant-root' },
+  { id: 'usr-6', name: 'Kabir Aliyu', email: 'cashier1@nile.com', phone: '+234 803 777 8888', role: 'Cashier', password: 'password123', tenantId: 'tenant-root' },
+  { id: 'usr-7', name: 'Bello Umar', email: 'sales1@nile.com', phone: '+234 803 999 0000', role: 'Sales Officer', password: 'password123', tenantId: 'tenant-root' }
+];
+
+const DEFAULT_TENANTS: Tenant[] = [
+  {
+    id: 'tenant-root',
+    name: 'Nile Premium Table Water Factory',
+    slug: 'nile-premium',
+    ownerName: 'Adamu Ibrahim',
+    ownerEmail: 'admin@nile.com',
+    plan: 'One-Time Purchase',
+    status: 'active',
+    createdAt: new Date().toISOString().split('T')[0]
+  }
 ];
 
 const DEFAULT_ROLES: CustomRole[] = [
@@ -81,6 +97,13 @@ const DEFAULT_ROLES: CustomRole[] = [
   { id: 'Cashier', name: 'Cashier', allowedModules: ['dashboard', 'sales', 'customers', 'expenses', 'financials'] },
   { id: 'Store Keeper', name: 'Store Keeper', allowedModules: ['dashboard', 'inventory'] }
 ];
+
+const getScopeKey = (key: string) => {
+  const tenantId = localStorage.getItem(KEYS.ACTIVE_TENANT) || 'tenant-root';
+  return `${tenantId}:${key}`;
+};
+
+const cloneSeed = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 
 export const INITIAL_INVENTORY: InventoryItem[] = [
   { id: 'inv-1', name: 'Raw Nylon Film (Standard)', category: 'Raw Materials', type: 'Nylon', quantity: 245, unit: 'kg', costPrice: 2100 },
@@ -177,82 +200,88 @@ const DEFAULT_LOCKDOWN_STATE: LockdownState = {
 export const db = {
   // Init
   init() {
-    if (!localStorage.getItem(KEYS.SETTINGS)) {
-      localStorage.setItem(KEYS.SETTINGS, JSON.stringify(DEFAULT_SETTINGS));
+    if (!localStorage.getItem(KEYS.TENANTS)) {
+      localStorage.setItem(KEYS.TENANTS, JSON.stringify(DEFAULT_TENANTS));
+    }
+    if (!localStorage.getItem(KEYS.ACTIVE_TENANT)) {
+      localStorage.setItem(KEYS.ACTIVE_TENANT, 'tenant-root');
+    }
+    if (!localStorage.getItem(getScopeKey(KEYS.SETTINGS))) {
+      localStorage.setItem(getScopeKey(KEYS.SETTINGS), JSON.stringify(DEFAULT_SETTINGS));
     }
     if (!localStorage.getItem(LOCKDOWN_KEY)) {
       localStorage.setItem(LOCKDOWN_KEY, JSON.stringify(DEFAULT_LOCKDOWN_STATE));
     }
-    if (!localStorage.getItem(KEYS.INVENTORY)) {
-      localStorage.setItem(KEYS.INVENTORY, JSON.stringify(INITIAL_INVENTORY));
+    if (!localStorage.getItem(getScopeKey(KEYS.INVENTORY))) {
+      localStorage.setItem(getScopeKey(KEYS.INVENTORY), JSON.stringify(INITIAL_INVENTORY));
     }
-    if (!localStorage.getItem(KEYS.CUSTOMERS)) {
-      localStorage.setItem(KEYS.CUSTOMERS, JSON.stringify(INITIAL_CUSTOMERS));
+    if (!localStorage.getItem(getScopeKey(KEYS.CUSTOMERS))) {
+      localStorage.setItem(getScopeKey(KEYS.CUSTOMERS), JSON.stringify(INITIAL_CUSTOMERS));
     }
-    if (!localStorage.getItem(KEYS.SALES)) {
-      localStorage.setItem(KEYS.SALES, JSON.stringify(INITIAL_SALES));
+    if (!localStorage.getItem(getScopeKey(KEYS.SALES))) {
+      localStorage.setItem(getScopeKey(KEYS.SALES), JSON.stringify(INITIAL_SALES));
     }
-    if (!localStorage.getItem(KEYS.PRODUCTION)) {
-      localStorage.setItem(KEYS.PRODUCTION, JSON.stringify(INITIAL_PRODUCTION));
+    if (!localStorage.getItem(getScopeKey(KEYS.PRODUCTION))) {
+      localStorage.setItem(getScopeKey(KEYS.PRODUCTION), JSON.stringify(INITIAL_PRODUCTION));
     }
-    if (!localStorage.getItem(KEYS.EXPENSES)) {
-      localStorage.setItem(KEYS.EXPENSES, JSON.stringify(INITIAL_EXPENSES));
+    if (!localStorage.getItem(getScopeKey(KEYS.EXPENSES))) {
+      localStorage.setItem(getScopeKey(KEYS.EXPENSES), JSON.stringify(INITIAL_EXPENSES));
     }
-    if (!localStorage.getItem(KEYS.RETURNS)) {
-      localStorage.setItem(KEYS.RETURNS, JSON.stringify(INITIAL_RETURNS));
+    if (!localStorage.getItem(getScopeKey(KEYS.RETURNS))) {
+      localStorage.setItem(getScopeKey(KEYS.RETURNS), JSON.stringify(INITIAL_RETURNS));
     }
-    if (!localStorage.getItem(KEYS.LEAKAGES)) {
-      localStorage.setItem(KEYS.LEAKAGES, JSON.stringify(INITIAL_LEAKAGES));
+    if (!localStorage.getItem(getScopeKey(KEYS.LEAKAGES))) {
+      localStorage.setItem(getScopeKey(KEYS.LEAKAGES), JSON.stringify(INITIAL_LEAKAGES));
     }
-    if (!localStorage.getItem(KEYS.EMPLOYEES)) {
-      localStorage.setItem(KEYS.EMPLOYEES, JSON.stringify(INITIAL_EMPLOYEES));
+    if (!localStorage.getItem(getScopeKey(KEYS.EMPLOYEES))) {
+      localStorage.setItem(getScopeKey(KEYS.EMPLOYEES), JSON.stringify(INITIAL_EMPLOYEES));
     }
-    if (!localStorage.getItem(KEYS.DELIVERIES)) {
-      localStorage.setItem(KEYS.DELIVERIES, JSON.stringify(INITIAL_DELIVERIES));
+    if (!localStorage.getItem(getScopeKey(KEYS.DELIVERIES))) {
+      localStorage.setItem(getScopeKey(KEYS.DELIVERIES), JSON.stringify(INITIAL_DELIVERIES));
     }
-    if (!localStorage.getItem(KEYS.NOTIFICATIONS)) {
-      localStorage.setItem(KEYS.NOTIFICATIONS, JSON.stringify(INITIAL_NOTIFICATIONS));
+    if (!localStorage.getItem(getScopeKey(KEYS.NOTIFICATIONS))) {
+      localStorage.setItem(getScopeKey(KEYS.NOTIFICATIONS), JSON.stringify(INITIAL_NOTIFICATIONS));
     }
-    if (!localStorage.getItem(KEYS.STOCK_MOVEMENTS)) {
-      localStorage.setItem(KEYS.STOCK_MOVEMENTS, JSON.stringify(INITIAL_STOCK_MOVEMENTS));
+    if (!localStorage.getItem(getScopeKey(KEYS.STOCK_MOVEMENTS))) {
+      localStorage.setItem(getScopeKey(KEYS.STOCK_MOVEMENTS), JSON.stringify(INITIAL_STOCK_MOVEMENTS));
     }
-    if (!localStorage.getItem(KEYS.PAYMENTS)) {
-      localStorage.setItem(KEYS.PAYMENTS, JSON.stringify(INITIAL_PAYMENTS));
+    if (!localStorage.getItem(getScopeKey(KEYS.PAYMENTS))) {
+      localStorage.setItem(getScopeKey(KEYS.PAYMENTS), JSON.stringify(INITIAL_PAYMENTS));
     }
-    if (!localStorage.getItem(KEYS.AUDIT_LOGS)) {
-      localStorage.setItem(KEYS.AUDIT_LOGS, JSON.stringify(INITIAL_AUDIT));
+    if (!localStorage.getItem(getScopeKey(KEYS.AUDIT_LOGS))) {
+      localStorage.setItem(getScopeKey(KEYS.AUDIT_LOGS), JSON.stringify(INITIAL_AUDIT));
     }
-    if (!localStorage.getItem(KEYS.USERS)) {
-      localStorage.setItem(KEYS.USERS, JSON.stringify(DEFAULT_USERS));
+    if (!localStorage.getItem(getScopeKey(KEYS.USERS))) {
+      localStorage.setItem(getScopeKey(KEYS.USERS), JSON.stringify(DEFAULT_USERS));
     }
-    if (!localStorage.getItem(KEYS.ROLES)) {
-      localStorage.setItem(KEYS.ROLES, JSON.stringify(DEFAULT_ROLES));
+    if (!localStorage.getItem(getScopeKey(KEYS.ROLES))) {
+      localStorage.setItem(getScopeKey(KEYS.ROLES), JSON.stringify(DEFAULT_ROLES));
     }
   },
 
   reset() {
-    localStorage.setItem(KEYS.SETTINGS, JSON.stringify(DEFAULT_SETTINGS));
-    localStorage.setItem(KEYS.INVENTORY, JSON.stringify(INITIAL_INVENTORY));
-    localStorage.setItem(KEYS.CUSTOMERS, JSON.stringify(INITIAL_CUSTOMERS));
-    localStorage.setItem(KEYS.SALES, JSON.stringify(INITIAL_SALES));
-    localStorage.setItem(KEYS.PRODUCTION, JSON.stringify(INITIAL_PRODUCTION));
-    localStorage.setItem(KEYS.EXPENSES, JSON.stringify(INITIAL_EXPENSES));
-    localStorage.setItem(KEYS.RETURNS, JSON.stringify(INITIAL_RETURNS));
-    localStorage.setItem(KEYS.LEAKAGES, JSON.stringify(INITIAL_LEAKAGES));
-    localStorage.setItem(KEYS.EMPLOYEES, JSON.stringify(INITIAL_EMPLOYEES));
-    localStorage.setItem(KEYS.DELIVERIES, JSON.stringify(INITIAL_DELIVERIES));
-    localStorage.setItem(KEYS.NOTIFICATIONS, JSON.stringify(INITIAL_NOTIFICATIONS));
-    localStorage.setItem(KEYS.STOCK_MOVEMENTS, JSON.stringify(INITIAL_STOCK_MOVEMENTS));
-    localStorage.setItem(KEYS.PAYMENTS, JSON.stringify(INITIAL_PAYMENTS));
-    localStorage.setItem(KEYS.AUDIT_LOGS, JSON.stringify(INITIAL_AUDIT));
-    localStorage.setItem(KEYS.USERS, JSON.stringify(DEFAULT_USERS));
-    localStorage.setItem(KEYS.ROLES, JSON.stringify(DEFAULT_ROLES));
+    localStorage.setItem(getScopeKey(KEYS.SETTINGS), JSON.stringify(DEFAULT_SETTINGS));
+    localStorage.setItem(getScopeKey(KEYS.INVENTORY), JSON.stringify(INITIAL_INVENTORY));
+    localStorage.setItem(getScopeKey(KEYS.CUSTOMERS), JSON.stringify(INITIAL_CUSTOMERS));
+    localStorage.setItem(getScopeKey(KEYS.SALES), JSON.stringify(INITIAL_SALES));
+    localStorage.setItem(getScopeKey(KEYS.PRODUCTION), JSON.stringify(INITIAL_PRODUCTION));
+    localStorage.setItem(getScopeKey(KEYS.EXPENSES), JSON.stringify(INITIAL_EXPENSES));
+    localStorage.setItem(getScopeKey(KEYS.RETURNS), JSON.stringify(INITIAL_RETURNS));
+    localStorage.setItem(getScopeKey(KEYS.LEAKAGES), JSON.stringify(INITIAL_LEAKAGES));
+    localStorage.setItem(getScopeKey(KEYS.EMPLOYEES), JSON.stringify(INITIAL_EMPLOYEES));
+    localStorage.setItem(getScopeKey(KEYS.DELIVERIES), JSON.stringify(INITIAL_DELIVERIES));
+    localStorage.setItem(getScopeKey(KEYS.NOTIFICATIONS), JSON.stringify(INITIAL_NOTIFICATIONS));
+    localStorage.setItem(getScopeKey(KEYS.STOCK_MOVEMENTS), JSON.stringify(INITIAL_STOCK_MOVEMENTS));
+    localStorage.setItem(getScopeKey(KEYS.PAYMENTS), JSON.stringify(INITIAL_PAYMENTS));
+    localStorage.setItem(getScopeKey(KEYS.AUDIT_LOGS), JSON.stringify(INITIAL_AUDIT));
+    localStorage.setItem(getScopeKey(KEYS.USERS), JSON.stringify(DEFAULT_USERS));
+    localStorage.setItem(getScopeKey(KEYS.ROLES), JSON.stringify(DEFAULT_ROLES));
   },
 
   exportDatabase(): string {
     const data: Record<string, any> = {};
     Object.entries(KEYS).forEach(([keyName, lsKey]) => {
-      const val = localStorage.getItem(lsKey);
+      const val = localStorage.getItem(getScopeKey(lsKey));
       data[keyName] = val ? JSON.parse(val) : null;
     });
     return JSON.stringify(data, null, 2);
@@ -263,7 +292,7 @@ export const db = {
       const data = JSON.parse(jsonString);
       Object.entries(KEYS).forEach(([keyName, lsKey]) => {
         if (data[keyName] !== undefined && data[keyName] !== null) {
-          localStorage.setItem(lsKey, JSON.stringify(data[keyName]));
+          localStorage.setItem(getScopeKey(lsKey), JSON.stringify(data[keyName]));
         }
       });
       return true;
@@ -277,17 +306,17 @@ export const db = {
 
   // Settings
   getSettings(): FactorySettings {
-    const s = localStorage.getItem(KEYS.SETTINGS);
+    const s = localStorage.getItem(getScopeKey(KEYS.SETTINGS));
     return s ? JSON.parse(s) : DEFAULT_SETTINGS;
   },
   saveSettings(settings: FactorySettings) {
-    localStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
+    localStorage.setItem(getScopeKey(KEYS.SETTINGS), JSON.stringify(settings));
     this.addAudit('Administrator', 'Update Settings', 'Changed global factory settings');
   },
 
   // Production Batches
   getProduction(): ProductionBatch[] {
-    const p = localStorage.getItem(KEYS.PRODUCTION);
+    const p = localStorage.getItem(getScopeKey(KEYS.PRODUCTION));
     return p ? JSON.parse(p) : [];
   },
   saveProduction(batch: Omit<ProductionBatch, 'id'>) {
@@ -297,7 +326,7 @@ export const db = {
       id: 'batch-' + Date.now()
     };
     batches.unshift(newBatch);
-    localStorage.setItem(KEYS.PRODUCTION, JSON.stringify(batches));
+    localStorage.setItem(getScopeKey(KEYS.PRODUCTION), JSON.stringify(batches));
 
     // Update inventory automatically (decrements Nylon, increments finished bags)
     const inventory = this.getInventory();
@@ -312,7 +341,7 @@ export const db = {
       waterItem.quantity += batch.bagsProduced;
       this.saveStockMovementRaw(waterItem.id, waterItem.name, 'Stock In', batch.bagsProduced, `Production Batch ${batch.batchNumber}`, batch.operator);
     }
-    localStorage.setItem(KEYS.INVENTORY, JSON.stringify(inventory));
+    localStorage.setItem(getScopeKey(KEYS.INVENTORY), JSON.stringify(inventory));
 
     // Audit Log
     this.addAudit('Production Officer', 'Add Production Batch', `Created batch ${batch.batchNumber} with ${batch.bagsProduced} bags.`);
@@ -325,7 +354,7 @@ export const db = {
 
   // Inventory Items
   getInventory(): InventoryItem[] {
-    const i = localStorage.getItem(KEYS.INVENTORY);
+    const i = localStorage.getItem(getScopeKey(KEYS.INVENTORY));
     return i ? JSON.parse(i) : [];
   },
   saveInventoryItem(item: InventoryItem) {
@@ -336,7 +365,7 @@ export const db = {
     } else {
       items.push(item);
     }
-    localStorage.setItem(KEYS.INVENTORY, JSON.stringify(items));
+    localStorage.setItem(getScopeKey(KEYS.INVENTORY), JSON.stringify(items));
   },
   adjustInventoryStock(itemId: string, qtyChange: number, type: 'Stock In' | 'Stock Out' | 'Adjustment', reason: string, operator: string) {
     const items = this.getInventory();
@@ -345,7 +374,7 @@ export const db = {
       const item = items[idx];
       item.quantity += qtyChange;
       if (item.quantity < 0) item.quantity = 0;
-      localStorage.setItem(KEYS.INVENTORY, JSON.stringify(items));
+      localStorage.setItem(getScopeKey(KEYS.INVENTORY), JSON.stringify(items));
       
       this.saveStockMovementRaw(itemId, item.name, type, Math.abs(qtyChange), reason, operator);
       this.addAudit('Store Keeper', 'Adjust Inventory', `Adjusted ${item.name} by ${qtyChange} units (${reason}).`);
@@ -355,7 +384,7 @@ export const db = {
 
   // Stock Movements
   getStockMovements(): StockMovement[] {
-    const m = localStorage.getItem(KEYS.STOCK_MOVEMENTS);
+    const m = localStorage.getItem(getScopeKey(KEYS.STOCK_MOVEMENTS));
     return m ? JSON.parse(m) : [];
   },
   saveStockMovementRaw(itemId: string, itemName: string, type: 'Stock In' | 'Stock Out' | 'Adjustment' | 'Transfer', quantity: number, reason: string, operator: string) {
@@ -370,12 +399,12 @@ export const db = {
       reason,
       operator
     });
-    localStorage.setItem(KEYS.STOCK_MOVEMENTS, JSON.stringify(movements));
+    localStorage.setItem(getScopeKey(KEYS.STOCK_MOVEMENTS), JSON.stringify(movements));
   },
 
   // Sales
   getSales(): Sale[] {
-    const s = localStorage.getItem(KEYS.SALES);
+    const s = localStorage.getItem(getScopeKey(KEYS.SALES));
     return s ? JSON.parse(s) : [];
   },
   saveSale(sale: Omit<Sale, 'id'>) {
@@ -385,7 +414,7 @@ export const db = {
       id: 'sale-' + Date.now()
     };
     sales.unshift(newSale);
-    localStorage.setItem(KEYS.SALES, JSON.stringify(sales));
+    localStorage.setItem(getScopeKey(KEYS.SALES), JSON.stringify(sales));
 
     // Deduct finished goods inventory
     const inventory = this.getInventory();
@@ -393,7 +422,7 @@ export const db = {
     if (waterItem) {
       waterItem.quantity = Math.max(0, waterItem.quantity - sale.quantityBags);
       this.saveStockMovementRaw(waterItem.id, waterItem.name, 'Stock Out', sale.quantityBags, `Sales Invoice ${sale.invoiceNumber}`, sale.salesOfficer);
-      localStorage.setItem(KEYS.INVENTORY, JSON.stringify(inventory));
+      localStorage.setItem(getScopeKey(KEYS.INVENTORY), JSON.stringify(inventory));
     }
 
     // Update customer outstanding if credit or partial
@@ -418,7 +447,7 @@ export const db = {
 
   // Customers
   getCustomers(): Customer[] {
-    const c = localStorage.getItem(KEYS.CUSTOMERS);
+    const c = localStorage.getItem(getScopeKey(KEYS.CUSTOMERS));
     return c ? JSON.parse(c) : [];
   },
   saveCustomer(customer: Omit<Customer, 'id' | 'createdAt'> & { id?: string }) {
@@ -439,20 +468,20 @@ export const db = {
       } as Customer;
       customers.push(newCust);
     }
-    localStorage.setItem(KEYS.CUSTOMERS, JSON.stringify(customers));
+    localStorage.setItem(getScopeKey(KEYS.CUSTOMERS), JSON.stringify(customers));
   },
   adjustCustomerBalance(customerId: string, change: number) {
     const customers = this.getCustomers();
     const idx = customers.findIndex(c => c.id === customerId);
     if (idx > -1) {
       customers[idx].outstandingBalance += change;
-      localStorage.setItem(KEYS.CUSTOMERS, JSON.stringify(customers));
+      localStorage.setItem(getScopeKey(KEYS.CUSTOMERS), JSON.stringify(customers));
     }
   },
 
   // Payments Ledger
   getPayments(): CustomerPayment[] {
-    const p = localStorage.getItem(KEYS.PAYMENTS);
+    const p = localStorage.getItem(getScopeKey(KEYS.PAYMENTS));
     return p ? JSON.parse(p) : [];
   },
   recordPayment(customerId: string, amount: number, method: 'Cash' | 'Transfer' | 'POS', reference: string, cashierName: string) {
@@ -480,13 +509,13 @@ export const db = {
       reference
     };
     payments.unshift(newPayment);
-    localStorage.setItem(KEYS.PAYMENTS, JSON.stringify(payments));
+    localStorage.setItem(getScopeKey(KEYS.PAYMENTS), JSON.stringify(payments));
     return newPayment;
   },
 
   // Returns Module
   getReturns(): ReturnedWater[] {
-    const r = localStorage.getItem(KEYS.RETURNS);
+    const r = localStorage.getItem(getScopeKey(KEYS.RETURNS));
     return r ? JSON.parse(r) : [];
   },
   saveReturn(ret: Omit<ReturnedWater, 'id'>) {
@@ -496,7 +525,7 @@ export const db = {
       id: 'ret-' + Date.now()
     };
     returns.unshift(newReturn);
-    localStorage.setItem(KEYS.RETURNS, JSON.stringify(returns));
+    localStorage.setItem(getScopeKey(KEYS.RETURNS), JSON.stringify(returns));
 
     // Update inventory automatically based on returns
     // In water factories, returned water is usually wasted/discarded (leakages) OR restocked if unsold
@@ -518,7 +547,7 @@ export const db = {
           lossValue: ret.quantityBags * 150 // using 150 cost price
         });
       }
-      localStorage.setItem(KEYS.INVENTORY, JSON.stringify(inventory));
+      localStorage.setItem(getScopeKey(KEYS.INVENTORY), JSON.stringify(inventory));
     }
 
     // Deduct from outstanding balance if the returns offset debt
@@ -531,7 +560,7 @@ export const db = {
 
   // Leakage / Loss
   getLeakages(): LeakDamage[] {
-    const l = localStorage.getItem(KEYS.LEAKAGES);
+    const l = localStorage.getItem(getScopeKey(KEYS.LEAKAGES));
     return l ? JSON.parse(l) : [];
   },
   saveLeakDamage(leak: Omit<LeakDamage, 'id'>) {
@@ -541,7 +570,7 @@ export const db = {
       id: 'leak-' + Date.now()
     };
     leakages.unshift(newLeak);
-    localStorage.setItem(KEYS.LEAKAGES, JSON.stringify(leakages));
+    localStorage.setItem(getScopeKey(KEYS.LEAKAGES), JSON.stringify(leakages));
 
     this.addAudit('Production Officer', 'Record Damage', `Recorded damage of ${leak.quantityBags} bags (${leak.reason}). Value: ₦${leak.lossValue}`);
     return newLeak;
@@ -549,7 +578,7 @@ export const db = {
 
   // Expenses
   getExpenses(): Expense[] {
-    const e = localStorage.getItem(KEYS.EXPENSES);
+    const e = localStorage.getItem(getScopeKey(KEYS.EXPENSES));
     return e ? JSON.parse(e) : [];
   },
   saveExpense(expense: Omit<Expense, 'id'>) {
@@ -559,7 +588,7 @@ export const db = {
       id: 'exp-' + Date.now()
     };
     expenses.unshift(newExpense);
-    localStorage.setItem(KEYS.EXPENSES, JSON.stringify(expenses));
+    localStorage.setItem(getScopeKey(KEYS.EXPENSES), JSON.stringify(expenses));
 
     this.addAudit('Cashier', 'Record Expense', `Expense: ₦${expense.amount} under ${expense.category} (${expense.description})`);
     return newExpense;
@@ -567,7 +596,7 @@ export const db = {
 
   // Employees & Attendance
   getEmployees(): Employee[] {
-    const e = localStorage.getItem(KEYS.EMPLOYEES);
+    const e = localStorage.getItem(getScopeKey(KEYS.EMPLOYEES));
     return e ? JSON.parse(e) : [];
   },
   saveEmployee(employee: Employee) {
@@ -578,10 +607,10 @@ export const db = {
     } else {
       emps.push(employee);
     }
-    localStorage.setItem(KEYS.EMPLOYEES, JSON.stringify(emps));
+    localStorage.setItem(getScopeKey(KEYS.EMPLOYEES), JSON.stringify(emps));
   },
   getAttendance(): AttendanceRecord[] {
-    const a = localStorage.getItem(KEYS.ATTENDANCE);
+    const a = localStorage.getItem(getScopeKey(KEYS.ATTENDANCE));
     return a ? JSON.parse(a) : [];
   },
   saveAttendance(records: Omit<AttendanceRecord, 'id'>[]) {
@@ -593,13 +622,13 @@ export const db = {
     }));
     // Append
     const updated = [...newRecords, ...current];
-    localStorage.setItem(KEYS.ATTENDANCE, JSON.stringify(updated));
+    localStorage.setItem(getScopeKey(KEYS.ATTENDANCE), JSON.stringify(updated));
     this.addAudit('Factory Manager', 'Record Attendance', `Logged attendance for ${records.length} staff members.`);
   },
 
   // Delivery Notes
   getDeliveries(): DeliveryNote[] {
-    const d = localStorage.getItem(KEYS.DELIVERIES);
+    const d = localStorage.getItem(getScopeKey(KEYS.DELIVERIES));
     return d ? JSON.parse(d) : [];
   },
   saveDelivery(delivery: Omit<DeliveryNote, 'id'>) {
@@ -609,7 +638,7 @@ export const db = {
       id: 'del-' + Date.now()
     };
     deliveries.unshift(newDel);
-    localStorage.setItem(KEYS.DELIVERIES, JSON.stringify(deliveries));
+    localStorage.setItem(getScopeKey(KEYS.DELIVERIES), JSON.stringify(deliveries));
 
     this.addAudit('Sales Officer', 'Create Delivery Note', `Created Delivery Note ${delivery.deliveryNumber} for ${delivery.customerName}`);
     return newDel;
@@ -619,14 +648,14 @@ export const db = {
     const idx = deliveries.findIndex(d => d.id === id);
     if (idx > -1) {
       deliveries[idx].status = status;
-      localStorage.setItem(KEYS.DELIVERIES, JSON.stringify(deliveries));
+      localStorage.setItem(getScopeKey(KEYS.DELIVERIES), JSON.stringify(deliveries));
       this.addAudit('Factory Manager', 'Update Delivery Status', `Updated Delivery ${deliveries[idx].deliveryNumber} to ${status}`);
     }
   },
 
   // Audit Logs
   getAuditLogs(): AuditLog[] {
-    const a = localStorage.getItem(KEYS.AUDIT_LOGS);
+    const a = localStorage.getItem(getScopeKey(KEYS.AUDIT_LOGS));
     return a ? JSON.parse(a) : [];
   },
   addAudit(role: UserRole, action: string, details: string) {
@@ -639,7 +668,7 @@ export const db = {
       action,
       details
     });
-    localStorage.setItem(KEYS.AUDIT_LOGS, JSON.stringify(logs.slice(0, 100))); // keep last 100
+    localStorage.setItem(getScopeKey(KEYS.AUDIT_LOGS), JSON.stringify(logs.slice(0, 100))); // keep last 100
   },
   getRoleUser(role: UserRole): string {
     switch (role) {
@@ -656,7 +685,7 @@ export const db = {
 
   // Notifications
   getNotifications(): NotificationItem[] {
-    const n = localStorage.getItem(KEYS.NOTIFICATIONS);
+    const n = localStorage.getItem(getScopeKey(KEYS.NOTIFICATIONS));
     return n ? JSON.parse(n) : [];
   },
   addNotification(type: 'stock' | 'debt' | 'production' | 'sales' | 'system', title: string, message: string) {
@@ -669,12 +698,12 @@ export const db = {
       message,
       read: false
     });
-    localStorage.setItem(KEYS.NOTIFICATIONS, JSON.stringify(list.slice(0, 50)));
+    localStorage.setItem(getScopeKey(KEYS.NOTIFICATIONS), JSON.stringify(list.slice(0, 50)));
   },
   markNotificationsAsRead() {
     const list = this.getNotifications();
     list.forEach(n => n.read = true);
-    localStorage.setItem(KEYS.NOTIFICATIONS, JSON.stringify(list));
+    localStorage.setItem(getScopeKey(KEYS.NOTIFICATIONS), JSON.stringify(list));
   },
 
   // Internal stock checking trigger
@@ -704,7 +733,7 @@ export const db = {
 
   // Users Management
   getUsers(): UserAccount[] {
-    const u = localStorage.getItem(KEYS.USERS);
+    const u = localStorage.getItem(getScopeKey(KEYS.USERS));
     return u ? JSON.parse(u) : DEFAULT_USERS;
   },
   saveUser(user: UserAccount) {
@@ -715,19 +744,19 @@ export const db = {
     } else {
       users.push(user);
     }
-    localStorage.setItem(KEYS.USERS, JSON.stringify(users));
+    localStorage.setItem(getScopeKey(KEYS.USERS), JSON.stringify(users));
     this.addAudit('Administrator', 'Save User Account', `Saved user account ${user.name} (${user.role})`);
   },
   deleteUser(id: string) {
     const users = this.getUsers();
     const filtered = users.filter(u => u.id !== id);
-    localStorage.setItem(KEYS.USERS, JSON.stringify(filtered));
+    localStorage.setItem(getScopeKey(KEYS.USERS), JSON.stringify(filtered));
     this.addAudit('Administrator', 'Delete User Account', `Deleted user account ID: ${id}`);
   },
 
   // Custom Roles Management
   getRoles(): CustomRole[] {
-    const r = localStorage.getItem(KEYS.ROLES);
+    const r = localStorage.getItem(getScopeKey(KEYS.ROLES));
     return r ? JSON.parse(r) : DEFAULT_ROLES;
   },
   saveRole(role: CustomRole) {
@@ -738,13 +767,13 @@ export const db = {
     } else {
       roles.push(role);
     }
-    localStorage.setItem(KEYS.ROLES, JSON.stringify(roles));
+    localStorage.setItem(getScopeKey(KEYS.ROLES), JSON.stringify(roles));
     this.addAudit('Administrator', 'Save Custom Role', `Saved role ${role.name} with modules: ${role.allowedModules.join(', ')}`);
   },
   deleteRole(id: string) {
     const roles = this.getRoles();
     const filtered = roles.filter(r => r.id !== id);
-    localStorage.setItem(KEYS.ROLES, JSON.stringify(filtered));
+    localStorage.setItem(getScopeKey(KEYS.ROLES), JSON.stringify(filtered));
     this.addAudit('Administrator', 'Delete Custom Role', `Deleted custom role: ${id}`);
   },
 
@@ -777,7 +806,7 @@ export const db = {
     const state = this.getLockdownState();
     state.isLocked = true;
     localStorage.setItem(LOCKDOWN_KEY, JSON.stringify(state));
-    this.addAudit('System', 'System Locked', 'System locked - awaiting developer token for unlock.');
+    this.addAudit('Administrator', 'System Locked', 'System locked - awaiting developer token for unlock.');
   },
 
   unlockSystem(token: string) {
@@ -807,8 +836,56 @@ export const db = {
   },
 
   // End of Day Reports
+  getTenants(): Tenant[] {
+    const t = localStorage.getItem(KEYS.TENANTS);
+    return t ? JSON.parse(t) : DEFAULT_TENANTS;
+  },
+  createTenant(tenant: Omit<Tenant, 'id' | 'createdAt'> & { id?: string }) {
+    const tenants = this.getTenants();
+    const newTenant: Tenant = {
+      ...tenant,
+      id: tenant.id || `tenant-${Date.now()}`,
+      createdAt: new Date().toISOString().split('T')[0]
+    };
+    tenants.push(newTenant);
+    localStorage.setItem(KEYS.TENANTS, JSON.stringify(tenants));
+    localStorage.setItem(KEYS.ACTIVE_TENANT, newTenant.id);
+
+    localStorage.setItem(getScopeKey(KEYS.SETTINGS), JSON.stringify(cloneSeed(DEFAULT_SETTINGS)));
+    localStorage.setItem(getScopeKey(KEYS.INVENTORY), JSON.stringify(cloneSeed(INITIAL_INVENTORY)));
+    localStorage.setItem(getScopeKey(KEYS.CUSTOMERS), JSON.stringify(cloneSeed(INITIAL_CUSTOMERS)));
+    localStorage.setItem(getScopeKey(KEYS.SALES), JSON.stringify(cloneSeed(INITIAL_SALES)));
+    localStorage.setItem(getScopeKey(KEYS.PRODUCTION), JSON.stringify(cloneSeed(INITIAL_PRODUCTION)));
+    localStorage.setItem(getScopeKey(KEYS.EXPENSES), JSON.stringify(cloneSeed(INITIAL_EXPENSES)));
+    localStorage.setItem(getScopeKey(KEYS.RETURNS), JSON.stringify(cloneSeed(INITIAL_RETURNS)));
+    localStorage.setItem(getScopeKey(KEYS.LEAKAGES), JSON.stringify(cloneSeed(INITIAL_LEAKAGES)));
+    localStorage.setItem(getScopeKey(KEYS.EMPLOYEES), JSON.stringify(cloneSeed(INITIAL_EMPLOYEES)));
+    localStorage.setItem(getScopeKey(KEYS.DELIVERIES), JSON.stringify(cloneSeed(INITIAL_DELIVERIES)));
+    localStorage.setItem(getScopeKey(KEYS.NOTIFICATIONS), JSON.stringify([]));
+    localStorage.setItem(getScopeKey(KEYS.STOCK_MOVEMENTS), JSON.stringify([]));
+    localStorage.setItem(getScopeKey(KEYS.PAYMENTS), JSON.stringify([]));
+    localStorage.setItem(getScopeKey(KEYS.AUDIT_LOGS), JSON.stringify([]));
+    localStorage.setItem(getScopeKey(KEYS.USERS), JSON.stringify([]));
+    localStorage.setItem(getScopeKey(KEYS.ROLES), JSON.stringify(DEFAULT_ROLES));
+    localStorage.setItem(getScopeKey(KEYS.END_OF_DAY_REPORTS), JSON.stringify([]));
+    localStorage.setItem(LOCKDOWN_KEY, JSON.stringify(DEFAULT_LOCKDOWN_STATE));
+
+    return newTenant;
+  },
+  switchTenant(tenantId: string) {
+    const tenants = this.getTenants();
+    if (tenants.some(t => t.id === tenantId)) {
+      localStorage.setItem(KEYS.ACTIVE_TENANT, tenantId);
+      return true;
+    }
+    return false;
+  },
+  getActiveTenant(): Tenant | null {
+    const tenantId = localStorage.getItem(KEYS.ACTIVE_TENANT) || 'tenant-root';
+    return this.getTenants().find(t => t.id === tenantId) || null;
+  },
   getEndOfDayReports(): EndOfDayReport[] {
-    const r = localStorage.getItem(KEYS.END_OF_DAY_REPORTS);
+    const r = localStorage.getItem(getScopeKey(KEYS.END_OF_DAY_REPORTS));
     return r ? JSON.parse(r) : [];
   },
 
@@ -820,7 +897,7 @@ export const db = {
       closedAt: new Date().toISOString()
     };
     reports.unshift(newReport);
-    localStorage.setItem(KEYS.END_OF_DAY_REPORTS, JSON.stringify(reports.slice(0, 365))); // Keep last 365 days
+    localStorage.setItem(getScopeKey(KEYS.END_OF_DAY_REPORTS), JSON.stringify(reports.slice(0, 365))); // Keep last 365 days
     this.addAudit('Administrator', 'End of Day Report', `Generated EOD report for ${report.date}`);
     return newReport;
   },
