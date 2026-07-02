@@ -5,17 +5,15 @@
 
 import React, { useState } from 'react';
 import { Shield, Key, Droplet, Users, Lock } from 'lucide-react';
-import { UserRole, UserAccount } from '../types';
+import { UserAccount } from '../types';
 import { db } from '../db';
 
 interface LoginScreenProps {
-  onLogin: (user: UserAccount) => void;
+  onLogin: (user: UserAccount, tenantId?: string) => void;
 }
 
 export default function LoginScreen({ onLogin }: LoginScreenProps) {
-  const usersList = db.getUsers();
-  
-  const [selectedUserId, setSelectedUserId] = useState(usersList[0]?.id || 'usr-1');
+  const [email, setEmail] = useState('admin@nile.com');
   const [password, setPassword] = useState('password123');
   const [error, setError] = useState('');
   const [showForgot, setShowForgot] = useState(false);
@@ -24,20 +22,28 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!password) {
-      setError('Please enter your password.');
+    if (!email || !password) {
+      setError('Please enter your email and password.');
       return;
     }
-    const user = usersList.find(u => u.id === selectedUserId);
-    if (user) {
-      if (user.password && password !== user.password) {
-        setError('Incorrect password. Please verify security key.');
+
+    const superAdmin = db.authenticateSuperAdmin(email, password);
+    if (superAdmin) {
+      onLogin(superAdmin, 'tenant-root');
+      return;
+    }
+
+    const tenantLogin = db.authenticateTenantUser(email, password);
+    if (tenantLogin.user && tenantLogin.tenant) {
+      if (tenantLogin.tenant.status !== 'active') {
+        setError('Tenant account is not active. Contact platform support.');
         return;
       }
-      onLogin(user);
-    } else {
-      setError('Selected user not found.');
+      onLogin(tenantLogin.user, tenantLogin.tenant.id);
+      return;
     }
+
+    setError('Invalid credentials. Please use your software-owner or tenant-admin login details.');
   };
 
   const handleForgotSubmit = (e: React.FormEvent) => {
@@ -136,33 +142,24 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
                 <p className="text-slate-400 text-sm font-sans">Select your workspace role to begin session.</p>
               </div>
 
-              {/* Dropdown to Select User Account */}
+              <div className="rounded-xl border border-sky-500/30 bg-sky-950/30 px-3 py-2 text-sm text-sky-200">
+                Use your software-owner login for the platform console, or use a tenant-admin login to open that company’s workspace.
+              </div>
+
               <div className="space-y-2">
                 <label className="text-xs font-display font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                  <Users className="w-3.5 h-3.5 text-sky-400" /> Authorized User Account
+                  <Users className="w-3.5 h-3.5 text-sky-400" /> Email or Username
                 </label>
-                <div className="relative">
-                  <select
-                    value={selectedUserId}
-                    onChange={(e) => {
-                      setSelectedUserId(e.target.value);
-                      setError('');
-                    }}
-                    className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-3 px-4 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-sky-500/40 focus:border-sky-500 transition-all duration-200 cursor-pointer appearance-none"
-                    id="user-select-dropdown"
-                  >
-                    {usersList.map((u) => (
-                      <option key={u.id} value={u.id} className="bg-slate-800 text-white py-2">
-                        {u.name} — {u.role} ({u.email})
-                      </option>
-                    ))}
-                  </select>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-slate-400">
-                    <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20">
-                      <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
-                    </svg>
-                  </div>
-                </div>
+                <input
+                  type="text"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setError('');
+                  }}
+                  placeholder="owner@company.com or admin"
+                  className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-2.5 px-4 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-sky-500/40 focus:border-sky-500 transition-all duration-200"
+                />
               </div>
 
               <div className="space-y-2">
@@ -200,7 +197,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
                 className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white font-display font-bold tracking-wide text-sm transition-all shadow-lg hover:shadow-sky-500/10 active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
                 id="login-submit-btn"
               >
-                <Shield className="w-4 h-4" /> Authenticate & Open Dashboard
+                <Shield className="w-4 h-4" /> Sign in to your workspace
               </button>
             </form>
           ) : (

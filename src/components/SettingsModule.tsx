@@ -29,9 +29,18 @@ import {
   LockKeyhole,
   Unlock,
   Calendar,
-  Printer
+  Printer,
+  BarChart3,
+  Sparkles,
+  Building2,
+  RefreshCw,
+  Zap,
+  CreditCard,
+  BadgeCheck,
+  Globe2,
+  ArrowRight
 } from 'lucide-react';
-import { FactorySettings, UserRole, UserAccount, CustomRole, LockdownState, EndOfDayReport } from '../types';
+import { FactorySettings, UserRole, UserAccount, CustomRole, LockdownState, EndOfDayReport, Tenant } from '../types';
 
 interface SettingsModuleProps {
   settings: FactorySettings;
@@ -47,8 +56,32 @@ interface SettingsModuleProps {
   onDeleteUser?: (id: string) => void;
   onSaveRole?: (role: CustomRole) => void;
   onDeleteRole?: (id: string) => void;
+  onCreateTenant?: (payload: {
+    name: string;
+    ownerName: string;
+    ownerEmail: string;
+    slug: string;
+    companyAddress: string;
+    companyPhone: string;
+    companyEmail: string;
+    registrationNumber: string;
+    country: string;
+    state: string;
+    city: string;
+    plan: string;
+    expiryDate: string;
+    tenantAdminUsername: string;
+    tenantAdminEmail: string;
+    tenantAdminPassword: string;
+  }) => void;
+  currentUser?: UserAccount;
   lockdownState?: { lockdownEndDate: string | null; isLocked: boolean; onActivateLockdown: () => void; onUnlockWithToken: (token: string) => boolean; onClearLockdown: () => void; };
   endOfDayReports?: EndOfDayReport[];
+  ownerStats?: { totalTenants: number; activeTenants: number; inactiveTenants: number; totalTokensGenerated: number; totalRevenueGenerated: number };
+  ownerReports?: { recentActivity: Array<{ title: string; detail: string; timestamp: string }>; growth: number; platformHealth: string };
+  tenants?: Tenant[];
+  onToggleTenantStatus?: (tenantId: string, suspended: boolean) => void;
+  onRefreshTenantToken?: (tenantId: string) => void;
 }
 
 const AVAILABLE_MODULES = [
@@ -81,8 +114,15 @@ export default function SettingsModule({
   onDeleteUser,
   onSaveRole,
   onDeleteRole,
+  onCreateTenant,
+  currentUser,
   lockdownState,
-  endOfDayReports = []
+  endOfDayReports = [],
+  ownerStats,
+  ownerReports,
+  tenants = [],
+  onToggleTenantStatus,
+  onRefreshTenantToken
 }: SettingsModuleProps) {
   
   // Tabs management
@@ -173,10 +213,26 @@ const playSound = (type: 'success' | 'warning') => {
   const [userRole, setUserRole] = useState('');
   const [userPassword, setUserPassword] = useState('');
   const [showUserForm, setShowUserForm] = useState(false);
+  const [tenantName, setTenantName] = useState('');
+  const [tenantOwnerName, setTenantOwnerName] = useState('');
+  const [tenantOwnerEmail, setTenantOwnerEmail] = useState('');
+  const [tenantSlug, setTenantSlug] = useState('');
+  const [tenantCompanyAddress, setTenantCompanyAddress] = useState('');
+  const [tenantPhone, setTenantPhone] = useState('');
+  const [tenantCompanyEmail, setTenantCompanyEmail] = useState('');
+  const [tenantRegistrationNumber, setTenantRegistrationNumber] = useState('');
+  const [tenantCountry, setTenantCountry] = useState('');
+  const [tenantState, setTenantState] = useState('');
+  const [tenantCity, setTenantCity] = useState('');
+  const [tenantPlan, setTenantPlan] = useState('Standard');
+  const [tenantExpiryDate, setTenantExpiryDate] = useState('');
+  const [tenantAdminUsername, setTenantAdminUsername] = useState('');
+  const [tenantAdminEmail, setTenantAdminEmail] = useState('');
+  const [tenantAdminPassword, setTenantAdminPassword] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const canWrite = activeRole === 'Administrator';
+  const canWrite = activeRole === 'Administrator' || currentUser?.isTenantAdmin;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -345,25 +401,226 @@ const playSound = (type: 'success' | 'warning') => {
     }
   };
 
-  return (
+  const handleCreateTenantSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tenantName.trim() || !tenantOwnerName.trim() || !tenantOwnerEmail.trim() || !tenantSlug.trim() || !tenantAdminUsername.trim() || !tenantAdminPassword.trim()) {
+      alert('Please fill in all required tenant portal details.');
+      return;
+    }
+    if (onCreateTenant) {
+      onCreateTenant({
+        name: tenantName.trim(),
+        ownerName: tenantOwnerName.trim(),
+        ownerEmail: tenantOwnerEmail.trim(),
+        slug: tenantSlug.trim().toLowerCase(),
+        companyAddress: tenantCompanyAddress.trim(),
+        companyPhone: tenantPhone.trim(),
+        companyEmail: tenantCompanyEmail.trim(),
+        registrationNumber: tenantRegistrationNumber.trim(),
+        country: tenantCountry.trim(),
+        state: tenantState.trim(),
+        city: tenantCity.trim(),
+        plan: tenantPlan,
+        expiryDate: tenantExpiryDate,
+        tenantAdminUsername: tenantAdminUsername.trim(),
+        tenantAdminEmail: tenantAdminEmail.trim() || `${tenantSlug.trim().toLowerCase()}-admin@${tenantSlug.trim().toLowerCase()}.com`,
+        tenantAdminPassword: tenantAdminPassword.trim()
+      });
+      setTenantName('');
+      setTenantOwnerName('');
+      setTenantOwnerEmail('');
+      setTenantSlug('');
+      setTenantCompanyAddress('');
+      setTenantPhone('');
+      setTenantCompanyEmail('');
+      setTenantRegistrationNumber('');
+      setTenantCountry('');
+      setTenantState('');
+      setTenantCity('');
+      setTenantPlan('Standard');
+      setTenantExpiryDate('');
+      setTenantAdminUsername('');
+      setTenantAdminEmail('');
+      setTenantAdminPassword('');
+    }
+  };
+
+return (
     <div className="space-y-6" id="settings-module">
       
+      {/* Super Admin Owner Command Center - Platform Owner Only */}
+      {activeRole === 'Administrator' && (
+        <div className="space-y-4">
+          <div className="rounded-3xl border border-sky-500/30 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 p-6 shadow-2xl">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <div className="flex items-center gap-2 text-sky-300">
+                  <Sparkles className="w-4 h-4" />
+                  <span className="text-xs font-semibold uppercase tracking-[0.3em]">Software Owner Command Center</span>
+                </div>
+                <h2 className="mt-2 text-2xl font-bold text-white">Operate your SaaS platform with clarity and control</h2>
+                <p className="mt-2 max-w-2xl text-sm text-slate-400">
+                  Monitor tenants, issue portal access, manage platform tools, and keep your software growing from a single elegant dashboard.
+                </p>
+              </div>
+              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">
+                <div className="flex items-center gap-2"><BadgeCheck className="w-4 h-4" /> Platform health: stable</div>
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+              <div className="rounded-xl border border-slate-700 bg-slate-950/80 p-3">
+                <div className="flex items-center justify-between text-slate-400"><span>Total tenants</span><Building2 className="w-4 h-4 text-sky-400" /></div>
+                <div className="mt-2 text-2xl font-bold text-white">{ownerStats?.totalTenants ?? 0}</div>
+              </div>
+              <div className="rounded-xl border border-slate-700 bg-slate-950/80 p-3">
+                <div className="flex items-center justify-between text-slate-400"><span>Tokens generated</span><Key className="w-4 h-4 text-emerald-400" /></div>
+                <div className="mt-2 text-2xl font-bold text-white">{ownerStats?.totalTokensGenerated ?? 0}</div>
+              </div>
+              <div className="rounded-xl border border-slate-700 bg-slate-950/80 p-3">
+                <div className="flex items-center justify-between text-slate-400"><span>Active tenants</span><Shield className="w-4 h-4 text-emerald-400" /></div>
+                <div className="mt-2 text-2xl font-bold text-white">{ownerStats?.activeTenants ?? 0}</div>
+              </div>
+              <div className="rounded-xl border border-slate-700 bg-slate-950/80 p-3">
+                <div className="flex items-center justify-between text-slate-400"><span>Inactive tenants</span><Lock className="w-4 h-4 text-amber-400" /></div>
+                <div className="mt-2 text-2xl font-bold text-white">{ownerStats?.inactiveTenants ?? 0}</div>
+              </div>
+              <div className="rounded-xl border border-slate-700 bg-slate-950/80 p-3">
+                <div className="flex items-center justify-between text-slate-400"><span>Revenue generated</span><DollarSign className="w-4 h-4 text-sky-400" /></div>
+                <div className="mt-2 text-2xl font-bold text-white">₦{(ownerStats?.totalRevenueGenerated ?? 0).toLocaleString()}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+            <div className="rounded-2xl border border-slate-700/60 bg-slate-800/70 p-4 shadow-lg">
+              <div className="flex items-center gap-2 text-white font-semibold">
+                <Plus className="w-4 h-4 text-emerald-400" /> Create new business tenant
+              </div>
+                <p className="mt-2 text-sm text-slate-400">Create a new tenant portal and provision the tenant admin account in one workflow.</p>
+                <form onSubmit={handleCreateTenantSubmit} className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <input value={tenantName} onChange={(e) => setTenantName(e.target.value)} placeholder="Company name" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+                  <input value={tenantOwnerName} onChange={(e) => setTenantOwnerName(e.target.value)} placeholder="Owner full name" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+                  <input value={tenantOwnerEmail} onChange={(e) => setTenantOwnerEmail(e.target.value)} placeholder="Owner email" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+                  <input value={tenantSlug} onChange={(e) => setTenantSlug(e.target.value)} placeholder="portal-slug" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+                  <input value={tenantCompanyAddress} onChange={(e) => setTenantCompanyAddress(e.target.value)} placeholder="Company address" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+                  <input value={tenantPhone} onChange={(e) => setTenantPhone(e.target.value)} placeholder="Company phone" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+                  <input value={tenantCompanyEmail} onChange={(e) => setTenantCompanyEmail(e.target.value)} placeholder="Company email" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+                  <input value={tenantRegistrationNumber} onChange={(e) => setTenantRegistrationNumber(e.target.value)} placeholder="Registration number" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+                  <input value={tenantCountry} onChange={(e) => setTenantCountry(e.target.value)} placeholder="Country" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+                  <input value={tenantState} onChange={(e) => setTenantState(e.target.value)} placeholder="State" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+                  <input value={tenantCity} onChange={(e) => setTenantCity(e.target.value)} placeholder="City" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+                  <input value={tenantAdminUsername} onChange={(e) => setTenantAdminUsername(e.target.value)} placeholder="Tenant admin username" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+                  <input value={tenantAdminEmail} onChange={(e) => setTenantAdminEmail(e.target.value)} placeholder="Tenant admin email" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+                  <input value={tenantAdminPassword} onChange={(e) => setTenantAdminPassword(e.target.value)} placeholder="Tenant admin password" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+                  <select value={tenantPlan} onChange={(e) => setTenantPlan(e.target.value)} className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white">
+                    <option value="Free Trial">Free Trial</option>
+                    <option value="Standard">Standard</option>
+                    <option value="Premium">Premium</option>
+                  </select>
+                  <input type="date" value={tenantExpiryDate} onChange={(e) => setTenantExpiryDate(e.target.value)} className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+                  <div className="md:col-span-2">
+                    <button type="submit" className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500">
+                      Create Company Portal
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              <div className="rounded-2xl border border-slate-700/60 bg-slate-800/70 p-4 shadow-lg">
+                <div className="flex items-center gap-2 text-white font-semibold">
+                  <Zap className="w-4 h-4 text-sky-400" /> Platform tools
+                </div>
+              <div className="mt-4 space-y-2">
+                <button className="flex w-full items-center justify-between rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-sm text-slate-200"><span>Launch upgrade center</span><ArrowRight className="w-4 h-4" /></button>
+                <button className="flex w-full items-center justify-between rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-sm text-slate-200"><span>Send platform announcement</span><Globe2 className="w-4 h-4" /></button>
+                <button className="flex w-full items-center justify-between rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-sm text-slate-200"><span>Review tenant access tokens</span><RefreshCw className="w-4 h-4" /></button>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-700/60 bg-slate-800/70 p-4 shadow-lg">
+            <div className="flex items-center gap-2 text-white font-semibold">
+              <BarChart3 className="w-4 h-4 text-sky-400" /> Tenant overview
+            </div>
+            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {tenants.length === 0 ? (
+                <div className="md:col-span-2 xl:col-span-3 rounded-lg border border-dashed border-slate-700 p-3 text-sm text-slate-400">No tenant portals created yet.</div>
+              ) : tenants.map((tenant) => (
+                <div key={tenant.id} className="rounded-xl border border-slate-700 bg-slate-900/70 p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="font-semibold text-white">{tenant.name}</div>
+                    <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${tenant.status === 'active' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-amber-500/15 text-amber-300'}`}>{tenant.status}</span>
+                  </div>
+                  <div className="mt-2 text-xs text-slate-400">Owner: {tenant.ownerName}</div>
+                  <div className="mt-1 text-xs text-slate-400">Portal: {tenant.slug}</div>
+                  <div className="mt-1 text-xs text-slate-400">Token: {tenant.accessToken}</div>
+                  <div className="mt-3 flex gap-2">
+                    <button onClick={() => onToggleTenantStatus?.(tenant.id, tenant.status === 'active')} className="rounded-lg border border-slate-700 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-800">
+                      {tenant.status === 'active' ? 'Suspend' : 'Reactivate'}
+                    </button>
+                    <button onClick={() => onRefreshTenantToken?.(tenant.id)} className="rounded-lg border border-sky-600 px-2 py-1 text-[11px] text-sky-200 hover:bg-slate-800">
+                      Refresh token
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-700/60 bg-slate-800/70 p-4 shadow-lg">
+            <div className="flex items-center gap-2 text-white font-semibold">
+              <FileText className="w-4 h-4 text-sky-400" /> Software owner reports
+            </div>
+            <div className="mt-4 grid gap-3 md:grid-cols-3">
+              <div className="rounded-xl border border-slate-700 bg-slate-900/70 p-3">
+                <div className="text-xs uppercase tracking-wider text-slate-400">Platform growth</div>
+                <div className="mt-2 text-2xl font-bold text-white">+{ownerReports?.growth ?? 0}%</div>
+              </div>
+              <div className="rounded-xl border border-slate-700 bg-slate-900/70 p-3">
+                <div className="text-xs uppercase tracking-wider text-slate-400">Platform health</div>
+                <div className="mt-2 text-lg font-semibold text-emerald-300">{ownerReports?.platformHealth ?? 'Stable'}</div>
+              </div>
+              <div className="rounded-xl border border-slate-700 bg-slate-900/70 p-3">
+                <div className="text-xs uppercase tracking-wider text-slate-400">Recent activity</div>
+                <div className="mt-2 text-sm text-slate-200">{ownerReports?.recentActivity?.length ?? 0} recent tenant events</div>
+              </div>
+            </div>
+            <div className="mt-4 space-y-2">
+              {(ownerReports?.recentActivity ?? []).map((item, index) => (
+                <div key={index} className="rounded-xl border border-slate-700 bg-slate-900/70 p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-white">{item.title}</div>
+                      <div className="text-xs text-slate-400">{item.detail}</div>
+                    </div>
+                    <div className="text-[11px] text-slate-500">{item.timestamp}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-800/40 p-4 rounded-xl border border-slate-700/40">
         <div>
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <Settings className="text-sky-400 w-5 h-5" />
-            {language === 'en' ? 'System Configuration Panel' : 'Saitun Masana\'anta'}
+            {language === 'en' ? (activeRole === 'Administrator' ? 'Super Admin Settings' : 'Company Settings') : 'Saitun Masana\'anta'}
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
             {language === 'en' 
-              ? 'Configure business logo cards, roles permission parameters, and factory settings.' 
+              ? (activeRole === 'Administrator' 
+                  ? 'Platform-wide configurations and factory parameters.' 
+                  : 'Configure business logo cards, roles permission parameters, and factory settings.')
               : 'Gudanar da sunan masana\'anta, iyakar kayayyaki, duba rabe-raben aiki.'}
           </p>
         </div>
       </div>
 
-      {/* Sub-Tabs Selector (Admin Only!) */}
+      {/* Sub-Tabs Selector - Show for both Super Admin and Tenant Admin */}
       {canWrite && (
         <div className="flex border-b border-slate-700 gap-1 overflow-x-auto">
           <button
