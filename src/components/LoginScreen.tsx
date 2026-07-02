@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { Shield, Key, Droplet, Users, Lock, Building2 } from 'lucide-react';
+import { Shield, Key, Droplet, Users, Lock } from 'lucide-react';
 import { UserAccount } from '../types';
 import { db } from '../db';
 
@@ -15,8 +15,6 @@ interface LoginScreenProps {
 export default function LoginScreen({ onLogin }: LoginScreenProps) {
   const [email, setEmail] = useState('admin@nile.com');
   const [password, setPassword] = useState('password123');
-  const [tenantSubdomain, setTenantSubdomain] = useState('');
-  const [mode, setMode] = useState<'super' | 'tenant'>('super');
   const [error, setError] = useState('');
   const [showForgot, setShowForgot] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
@@ -29,33 +27,13 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
       return;
     }
 
-    if (mode === 'super') {
-      const superAdmin = db.authenticateSuperAdmin(email, password);
-      if (superAdmin) {
-        onLogin(superAdmin, 'tenant-root');
-        return;
-      }
-      setError('Invalid software owner credentials.');
+    const superAdmin = db.authenticateSuperAdmin(email, password);
+    if (superAdmin) {
+      onLogin(superAdmin);
       return;
     }
 
-    const tenant = db.getTenantBySubdomain(tenantSubdomain);
-    if (!tenant) {
-      setError('Tenant subdomain not found.');
-      return;
-    }
-    if (tenant.status === 'suspended') {
-      setError('This tenant portal is currently suspended.');
-      return;
-    }
-
-    const tenantAdmin = db.authenticateUser(email, password, tenant.id);
-    if (tenantAdmin) {
-      onLogin(tenantAdmin, tenant.id);
-      return;
-    }
-
-    setError('Invalid tenant admin credentials.');
+    setError('Invalid software owner credentials.');
   };
 
   const handleForgotSubmit = (e: React.FormEvent) => {
@@ -112,28 +90,9 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
                 <p className="text-slate-400 text-sm font-sans">Select your workspace role to begin session.</p>
               </div>
 
-              <div className="flex gap-2 mb-4">
-                <button type="button" onClick={() => setMode('super')} className={`flex-1 rounded-xl border px-3 py-2 text-sm ${mode === 'super' ? 'border-sky-500 bg-sky-600 text-white' : 'border-slate-700 bg-slate-900 text-slate-300'}`}>
-                  Software Owner
-                </button>
-                <button type="button" onClick={() => setMode('tenant')} className={`flex-1 rounded-xl border px-3 py-2 text-sm ${mode === 'tenant' ? 'border-emerald-500 bg-emerald-600 text-white' : 'border-slate-700 bg-slate-900 text-slate-300'}`}>
-                  Tenant Admin
-                </button>
+              <div className="rounded-xl border border-sky-500/30 bg-sky-950/30 px-3 py-2 text-sm text-sky-200">
+                This sign-in is reserved for the software owner to manage portals and tenant admins.
               </div>
-
-              {mode === 'tenant' && (
-                <div className="space-y-2">
-                  <label className="text-xs font-display font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                    <Building2 className="w-3.5 h-3.5 text-emerald-400" /> Tenant Subdomain
-                  </label>
-                  <input
-                    value={tenantSubdomain}
-                    onChange={(e) => setTenantSubdomain(e.target.value)}
-                    placeholder="acme"
-                    className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-2.5 px-4 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 transition-all duration-200"
-                  />
-                </div>
-              )}
 
               <div className="space-y-2">
                 <label className="text-xs font-display font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
@@ -186,7 +145,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
                 className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white font-display font-bold tracking-wide text-sm transition-all shadow-lg hover:shadow-sky-500/10 active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
                 id="login-submit-btn"
               >
-                <Shield className="w-4 h-4" /> {mode === 'super' ? 'Sign in as Software Owner' : 'Sign in as Tenant Admin'}
+                <Shield className="w-4 h-4" /> Sign in as Software Owner
               </button>
             </form>
           ) : (

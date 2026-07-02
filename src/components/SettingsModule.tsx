@@ -373,12 +373,12 @@ const playSound = (type: 'success' | 'warning') => {
         <div className="bg-slate-800/40 border border-slate-700/40 rounded-xl p-4 space-y-4">
           <div className="flex items-center gap-2 text-white font-semibold">
             <Shield className="w-4 h-4 text-emerald-400" />
-            {language === 'en' ? 'Super Admin SaaS Portal Console' : 'Sashin Super Admin'}
+            {language === 'en' ? 'Software Owner Portal Console' : 'Sashin Super Admin'}
           </div>
           <p className="text-sm text-slate-400">
             {language === 'en'
-              ? 'Create a new company portal with one-time purchase access so each business can manage its own users, roles, and data.'
-              : 'Ƙirƙiri sabuwar portal na kamfani tare da damar siye sau ɗaya don kowane kasuwanci ya sarrafa masu amfani, matsayi, da bayanansa.'}
+              ? 'Create a new company portal and tenant admin credentials so the business can sign in and manage its own data.'
+              : 'Ƙirƙiri sabuwar portal na kamfani da bayanan shiga na mai kula da tenant don kasuwanci ya shiga ya sarrafa bayanansa.'}
           </p>
           <form onSubmit={handleCreateTenantSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <input value={tenantName} onChange={(e) => setTenantName(e.target.value)} placeholder={language === 'en' ? 'Company name' : 'Sunan kamfani'} className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />

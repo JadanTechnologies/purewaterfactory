@@ -341,12 +341,13 @@ export default function App() {
   };
 
   const handleLogin = (user: UserAccount, tenantId?: string) => {
-    if (tenantId) {
+    if (tenantId && !user.isSuperAdmin) {
       db.switchTenant(tenantId);
     }
     setCurrentUser(user);
     setAuthenticatedRole(user.role);
     setIsLoggedIn(true);
+    setActiveModule(user.isSuperAdmin ? 'settings' : 'dashboard');
     db.addAudit(user.role as any, 'Sign In', `User ${user.name} authenticated successfully.`);
     syncDatabaseStates();
 
@@ -499,7 +500,12 @@ export default function App() {
     });
     syncDatabaseStates();
     playSound('success');
-    showPopupNotification(`Portal created for ${created.name}`, 'success');
+    const safeSlug = slug.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const tenantAdminEmail = `${safeSlug}-admin@${safeSlug}.com`;
+    const tenantAdminPassword = `${safeSlug}@2026`;
+    const loginLink = `${window.location.origin}?tenant=${safeSlug}`;
+    window.alert(`Portal created for ${created.name}.\nTenant admin login: ${loginLink}\nEmail: ${tenantAdminEmail}\nPassword: ${tenantAdminPassword}`);
+    showPopupNotification(`Portal created for ${created.name}. Tenant admin credentials shared.`, 'success');
     return created;
   };
 
@@ -577,6 +583,14 @@ export default function App() {
   const hasAccess = (moduleName: string): boolean => {
     // Block all access if system is locked
     if (lockdownState.isLocked) return false;
+
+    if (currentUser.isSuperAdmin) {
+      return moduleName === 'settings';
+    }
+
+    if (currentUser.isTenantAdmin) {
+      return true;
+    }
     
     const roleName = currentUser.role;
     // Check if dynamic role is defined in roles
@@ -799,23 +813,6 @@ export default function App() {
                   {r.name.split(' ')[0]}
                 </button>
               ))}
-            </div>
-          )}
-
-          {currentUser.isSuperAdmin && (
-            <div className="hidden lg:flex items-center gap-2 bg-slate-950 border border-slate-800 px-2 py-1 rounded-xl">
-              <span className="text-[10px] uppercase text-slate-500">Portal</span>
-              <select
-                value={activeTenant?.id || 'tenant-root'}
-                onChange={(e) => handleSwitchTenant(e.target.value)}
-                className="bg-transparent text-xs text-slate-200 focus:outline-none"
-              >
-                {tenants.map((tenant) => (
-                  <option key={tenant.id} value={tenant.id} className="bg-slate-900 text-slate-200">
-                    {tenant.name}
-                  </option>
-                ))}
-              </select>
             </div>
           )}
 
