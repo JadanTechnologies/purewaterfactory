@@ -16,8 +16,7 @@ const tenant = db.createTenant({
   slug: 'acme-water',
   ownerName: 'Aisha Bello',
   ownerEmail: 'aisha@acme.com',
-  plan: 'One-Time Purchase',
-  status: 'active'
+  plan: 'One-Time Purchase'
 });
 
 if (!tenant?.id) throw new Error('tenant should be created');
@@ -51,7 +50,7 @@ if (!ownerReports.recentActivity || ownerReports.recentActivity.length < 0) {
   throw new Error('owner reports were not generated correctly');
 }
 
-const tenantLogin = db.authenticateTenantUser('acme-water-admin@acme-water.com', 'acmewater@2026');
+const tenantLogin = db.authenticateTenantUser('acme-water-admin@acme-water.com', 'acme-water@2026');
 if (!tenantLogin || tenantLogin.user?.tenantId !== tenant.id) {
   throw new Error('tenant login credentials were not recognized correctly');
 }

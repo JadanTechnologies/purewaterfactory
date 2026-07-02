@@ -35,6 +35,10 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
 
     const tenantLogin = db.authenticateTenantUser(email, password);
     if (tenantLogin.user && tenantLogin.tenant) {
+      if (tenantLogin.tenant.status !== 'active') {
+        setError('Tenant account is not active. Contact platform support.');
+        return;
+      }
       onLogin(tenantLogin.user, tenantLogin.tenant.id);
       return;
     }
@@ -102,16 +106,16 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
 
               <div className="space-y-2">
                 <label className="text-xs font-display font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                  <Users className="w-3.5 h-3.5 text-sky-400" /> Email Address
+                  <Users className="w-3.5 h-3.5 text-sky-400" /> Email or Username
                 </label>
                 <input
-                  type="email"
+                  type="text"
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
                     setError('');
                   }}
-                  placeholder="owner@company.com"
+                  placeholder="owner@company.com or admin"
                   className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-2.5 px-4 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-sky-500/40 focus:border-sky-500 transition-all duration-200"
                 />
               </div>

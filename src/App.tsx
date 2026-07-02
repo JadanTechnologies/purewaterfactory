@@ -489,23 +489,47 @@ export default function App() {
     showPopupNotification(`Role ${role.name} saved`, 'success');
   };
 
-  const handleCreateTenant = (tenantName: string, ownerName: string, ownerEmail: string, slug: string) => {
+  const handleCreateTenant = (payload: {
+    name: string;
+    ownerName: string;
+    ownerEmail: string;
+    slug: string;
+    companyAddress: string;
+    companyPhone: string;
+    companyEmail: string;
+    registrationNumber: string;
+    country: string;
+    state: string;
+    city: string;
+    plan: string;
+    expiryDate: string;
+    tenantAdminUsername: string;
+    tenantAdminEmail: string;
+    tenantAdminPassword: string;
+  }) => {
     const created = db.createTenant({
-      name: tenantName,
-      slug,
-      ownerName,
-      ownerEmail,
-      plan: 'One-Time Purchase',
-      status: 'active'
+      name: payload.name,
+      slug: payload.slug,
+      ownerName: payload.ownerName,
+      ownerEmail: payload.ownerEmail,
+      companyAddress: payload.companyAddress,
+      companyPhone: payload.companyPhone,
+      companyEmail: payload.companyEmail,
+      registrationNumber: payload.registrationNumber,
+      country: payload.country,
+      state: payload.state,
+      city: payload.city,
+      plan: payload.plan as any,
+      expiryDate: payload.expiryDate,
+      tenantAdminUsername: payload.tenantAdminUsername,
+      tenantAdminEmail: payload.tenantAdminEmail,
+      tenantAdminPassword: payload.tenantAdminPassword
     });
     syncDatabaseStates();
     playSound('success');
-    const safeSlug = slug.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    const tenantAdminEmail = `${safeSlug}-admin@${safeSlug}.com`;
-    const tenantAdminPassword = `${safeSlug}@2026`;
-    const loginLink = `${window.location.origin}?tenant=${safeSlug}`;
-    window.alert(`Portal created for ${created.name}.\nTenant admin login: ${loginLink}\nEmail: ${tenantAdminEmail}\nPassword: ${tenantAdminPassword}`);
-    showPopupNotification(`Portal created for ${created.name}. Tenant admin credentials shared.`, 'success');
+    const loginLink = `${window.location.origin}?tenant=${created.slug}`;
+    window.alert(`Tenant portal created for ${created.name}.\nTenant admin username: ${created.tenantAdminUsername}\nTenant admin email: ${created.tenantAdminEmail}\nTenant admin password: ${created.tenantAdminPassword}\nLogin link: ${loginLink}`);
+    showPopupNotification(`Tenant portal created for ${created.name}.`, 'success');
     return created;
   };
 
@@ -607,7 +631,7 @@ export default function App() {
     }
 
     if (currentUser.isTenantAdmin) {
-      return true;
+      return moduleName !== 'settings';
     }
     
     const roleName = currentUser.role;

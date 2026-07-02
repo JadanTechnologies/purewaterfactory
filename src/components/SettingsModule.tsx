@@ -56,7 +56,24 @@ interface SettingsModuleProps {
   onDeleteUser?: (id: string) => void;
   onSaveRole?: (role: CustomRole) => void;
   onDeleteRole?: (id: string) => void;
-  onCreateTenant?: (tenantName: string, ownerName: string, ownerEmail: string, slug: string) => void;
+  onCreateTenant?: (payload: {
+    name: string;
+    ownerName: string;
+    ownerEmail: string;
+    slug: string;
+    companyAddress: string;
+    companyPhone: string;
+    companyEmail: string;
+    registrationNumber: string;
+    country: string;
+    state: string;
+    city: string;
+    plan: string;
+    expiryDate: string;
+    tenantAdminUsername: string;
+    tenantAdminEmail: string;
+    tenantAdminPassword: string;
+  }) => void;
   lockdownState?: { lockdownEndDate: string | null; isLocked: boolean; onActivateLockdown: () => void; onUnlockWithToken: (token: string) => boolean; onClearLockdown: () => void; };
   endOfDayReports?: EndOfDayReport[];
   ownerStats?: { totalTenants: number; activeTenants: number; inactiveTenants: number; totalTokensGenerated: number; totalRevenueGenerated: number };
@@ -198,6 +215,18 @@ const playSound = (type: 'success' | 'warning') => {
   const [tenantOwnerName, setTenantOwnerName] = useState('');
   const [tenantOwnerEmail, setTenantOwnerEmail] = useState('');
   const [tenantSlug, setTenantSlug] = useState('');
+  const [tenantCompanyAddress, setTenantCompanyAddress] = useState('');
+  const [tenantPhone, setTenantPhone] = useState('');
+  const [tenantCompanyEmail, setTenantCompanyEmail] = useState('');
+  const [tenantRegistrationNumber, setTenantRegistrationNumber] = useState('');
+  const [tenantCountry, setTenantCountry] = useState('');
+  const [tenantState, setTenantState] = useState('');
+  const [tenantCity, setTenantCity] = useState('');
+  const [tenantPlan, setTenantPlan] = useState('Standard');
+  const [tenantExpiryDate, setTenantExpiryDate] = useState('');
+  const [tenantAdminUsername, setTenantAdminUsername] = useState('');
+  const [tenantAdminEmail, setTenantAdminEmail] = useState('');
+  const [tenantAdminPassword, setTenantAdminPassword] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -372,16 +401,45 @@ const playSound = (type: 'success' | 'warning') => {
 
   const handleCreateTenantSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!tenantName.trim() || !tenantOwnerName.trim() || !tenantOwnerEmail.trim() || !tenantSlug.trim()) {
-      alert('Please fill in all portal details.');
+    if (!tenantName.trim() || !tenantOwnerName.trim() || !tenantOwnerEmail.trim() || !tenantSlug.trim() || !tenantAdminUsername.trim() || !tenantAdminPassword.trim()) {
+      alert('Please fill in all required tenant portal details.');
       return;
     }
     if (onCreateTenant) {
-      onCreateTenant(tenantName.trim(), tenantOwnerName.trim(), tenantOwnerEmail.trim(), tenantSlug.trim().toLowerCase());
+      onCreateTenant({
+        name: tenantName.trim(),
+        ownerName: tenantOwnerName.trim(),
+        ownerEmail: tenantOwnerEmail.trim(),
+        slug: tenantSlug.trim().toLowerCase(),
+        companyAddress: tenantCompanyAddress.trim(),
+        companyPhone: tenantPhone.trim(),
+        companyEmail: tenantCompanyEmail.trim(),
+        registrationNumber: tenantRegistrationNumber.trim(),
+        country: tenantCountry.trim(),
+        state: tenantState.trim(),
+        city: tenantCity.trim(),
+        plan: tenantPlan,
+        expiryDate: tenantExpiryDate,
+        tenantAdminUsername: tenantAdminUsername.trim(),
+        tenantAdminEmail: tenantAdminEmail.trim() || `${tenantSlug.trim().toLowerCase()}-admin@${tenantSlug.trim().toLowerCase()}.com`,
+        tenantAdminPassword: tenantAdminPassword.trim()
+      });
       setTenantName('');
       setTenantOwnerName('');
       setTenantOwnerEmail('');
       setTenantSlug('');
+      setTenantCompanyAddress('');
+      setTenantPhone('');
+      setTenantCompanyEmail('');
+      setTenantRegistrationNumber('');
+      setTenantCountry('');
+      setTenantState('');
+      setTenantCity('');
+      setTenantPlan('Standard');
+      setTenantExpiryDate('');
+      setTenantAdminUsername('');
+      setTenantAdminEmail('');
+      setTenantAdminPassword('');
     }
   };
 
@@ -436,24 +494,40 @@ const playSound = (type: 'success' | 'warning') => {
               <div className="flex items-center gap-2 text-white font-semibold">
                 <Plus className="w-4 h-4 text-emerald-400" /> Create new business tenant
               </div>
-              <p className="mt-2 text-sm text-slate-400">Create a new tenant portal and generate a tenant-admin login link in one action.</p>
-              <form onSubmit={handleCreateTenantSubmit} className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-                <input value={tenantName} onChange={(e) => setTenantName(e.target.value)} placeholder={language === 'en' ? 'Company name' : 'Sunan kamfani'} className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
-                <input value={tenantOwnerName} onChange={(e) => setTenantOwnerName(e.target.value)} placeholder={language === 'en' ? 'Owner full name' : 'Sunan mai mallaka'} className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
-                <input value={tenantOwnerEmail} onChange={(e) => setTenantOwnerEmail(e.target.value)} placeholder={language === 'en' ? 'Owner email' : 'Imel na mai mallaka'} className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
-                <input value={tenantSlug} onChange={(e) => setTenantSlug(e.target.value)} placeholder={language === 'en' ? 'portal-slug' : 'slug-portal'} className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
-                <div className="md:col-span-2">
-                  <button type="submit" className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500">
-                    {language === 'en' ? 'Create Company Portal' : 'Ƙirƙiri Portal na Kamfani'}
-                  </button>
-                </div>
-              </form>
-            </div>
-
-            <div className="rounded-2xl border border-slate-700/60 bg-slate-800/70 p-4 shadow-lg">
-              <div className="flex items-center gap-2 text-white font-semibold">
-                <Zap className="w-4 h-4 text-sky-400" /> Platform tools
+                <p className="mt-2 text-sm text-slate-400">Create a new tenant portal and provision the tenant admin account in one workflow.</p>
+                <form onSubmit={handleCreateTenantSubmit} className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <input value={tenantName} onChange={(e) => setTenantName(e.target.value)} placeholder="Company name" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+                  <input value={tenantOwnerName} onChange={(e) => setTenantOwnerName(e.target.value)} placeholder="Owner full name" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+                  <input value={tenantOwnerEmail} onChange={(e) => setTenantOwnerEmail(e.target.value)} placeholder="Owner email" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+                  <input value={tenantSlug} onChange={(e) => setTenantSlug(e.target.value)} placeholder="portal-slug" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+                  <input value={tenantCompanyAddress} onChange={(e) => setTenantCompanyAddress(e.target.value)} placeholder="Company address" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+                  <input value={tenantPhone} onChange={(e) => setTenantPhone(e.target.value)} placeholder="Company phone" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+                  <input value={tenantCompanyEmail} onChange={(e) => setTenantCompanyEmail(e.target.value)} placeholder="Company email" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+                  <input value={tenantRegistrationNumber} onChange={(e) => setTenantRegistrationNumber(e.target.value)} placeholder="Registration number" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+                  <input value={tenantCountry} onChange={(e) => setTenantCountry(e.target.value)} placeholder="Country" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+                  <input value={tenantState} onChange={(e) => setTenantState(e.target.value)} placeholder="State" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+                  <input value={tenantCity} onChange={(e) => setTenantCity(e.target.value)} placeholder="City" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+<input value={tenantAdminUsername} onChange={(e) => setTenantAdminUsername(e.target.value)} placeholder="Tenant admin username" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+                  <input value={tenantAdminEmail} onChange={(e) => setTenantAdminEmail(e.target.value)} placeholder="Tenant admin email" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+                  <input value={tenantAdminPassword} onChange={(e) => setTenantAdminPassword(e.target.value)} placeholder="Tenant admin password" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+                  <select value={tenantPlan} onChange={(e) => setTenantPlan(e.target.value)} className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white">
+                    <option value="Free Trial">Free Trial</option>
+                    <option value="Standard">Standard</option>
+                    <option value="Premium">Premium</option>
+                  </select>
+                  <input type="date" value={tenantExpiryDate} onChange={(e) => setTenantExpiryDate(e.target.value)} className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+                  <div className="md:col-span-2">
+                    <button type="submit" className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500">
+                      Create Company Portal
+                    </button>
+                  </div>
+                </form>
               </div>
+
+              <div className="rounded-2xl border border-slate-700/60 bg-slate-800/70 p-4 shadow-lg">
+                <div className="flex items-center gap-2 text-white font-semibold">
+                  <Zap className="w-4 h-4 text-sky-400" /> Platform tools
+                </div>
               <div className="mt-4 space-y-2">
                 <button className="flex w-full items-center justify-between rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-sm text-slate-200"><span>Launch upgrade center</span><ArrowRight className="w-4 h-4" /></button>
                 <button className="flex w-full items-center justify-between rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-sm text-slate-200"><span>Send platform announcement</span><Globe2 className="w-4 h-4" /></button>

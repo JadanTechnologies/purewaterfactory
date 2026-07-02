@@ -24,7 +24,9 @@ import {
   CustomRole,
   LockdownState,
   EndOfDayReport,
-  Tenant
+  Tenant,
+  TenantCreationPayload,
+  LoginHistoryItem
 } from './types';
 
 // Storage keys
@@ -48,6 +50,7 @@ const KEYS = {
   ROLES: 'pwfms_roles',
   END_OF_DAY_REPORTS: 'pwfms_endofday_reports',
   TENANTS: 'pwfms_tenants',
+  LOGIN_HISTORY: 'pwfms_login_history',
   ACTIVE_TENANT: 'pwfms_active_tenant'
 };
 
@@ -66,7 +69,7 @@ const DEFAULT_SETTINGS: FactorySettings = {
 };
 
 const DEFAULT_USERS: UserAccount[] = [
-  { id: 'usr-1', name: 'Adamu Ibrahim', email: 'admin@nile.com', phone: '+234 803 111 2222', role: 'Administrator', password: 'password123', isSuperAdmin: true, tenantId: 'tenant-root' },
+  { id: 'usr-1', username: 'admin', name: 'Adamu Ibrahim', email: 'admin@nile.com', phone: '+234 803 111 2222', role: 'Administrator', password: 'password123', isSuperAdmin: true, tenantId: 'tenant-root', status: 'active', failedLoginAttempts: 0 },
   { id: 'usr-2', name: 'Garba Shehu', email: 'manager@nile.com', phone: '+234 803 222 3333', role: 'Factory Manager', password: 'password123', tenantId: 'tenant-root' },
   { id: 'usr-3', name: 'Shehu Garba', email: 'production@nile.com', phone: '+234 803 333 4444', role: 'Production Officer', password: 'password123', tenantId: 'tenant-root' },
   { id: 'usr-4', name: 'Maryam Yusuf', email: 'sales@nile.com', phone: '+234 803 444 5555', role: 'Sales & Cashier Officer', password: 'password123', tenantId: 'tenant-root' },
@@ -81,6 +84,7 @@ const DEFAULT_TENANTS: Tenant[] = [
     name: 'Nile Premium Table Water Factory',
     slug: 'nile-premium',
     subdomain: 'nile',
+    companyCode: 'CMP-ROOT-001',
     ownerName: 'Adamu Ibrahim',
     ownerEmail: 'admin@nile.com',
     plan: 'One-Time Purchase',
@@ -260,6 +264,9 @@ export const db = {
     if (!localStorage.getItem(getScopeKey(KEYS.ROLES))) {
       localStorage.setItem(getScopeKey(KEYS.ROLES), JSON.stringify(DEFAULT_ROLES));
     }
+    if (!localStorage.getItem(KEYS.LOGIN_HISTORY)) {
+      localStorage.setItem(KEYS.LOGIN_HISTORY, JSON.stringify([]));
+    }
   },
 
   reset() {
@@ -279,6 +286,7 @@ export const db = {
     localStorage.setItem(getScopeKey(KEYS.AUDIT_LOGS), JSON.stringify(INITIAL_AUDIT));
     localStorage.setItem(getScopeKey(KEYS.USERS), JSON.stringify(DEFAULT_USERS));
     localStorage.setItem(getScopeKey(KEYS.ROLES), JSON.stringify(DEFAULT_ROLES));
+    localStorage.setItem(KEYS.LOGIN_HISTORY, JSON.stringify([]));
   },
 
   exportDatabase(): string {
@@ -879,30 +887,57 @@ export const db = {
     const tenants = this.getTenants();
     return tenants.find(t => t.slug.toLowerCase() === slug.toLowerCase()) || null;
   },
-  createTenant(tenant: Omit<Tenant, 'id' | 'createdAt' | 'accessToken'> & { id?: string; accessToken?: string }) {
+  createTenant(payload: TenantCreationPayload) {
     const tenants = this.getTenants();
+    const companyCode = `CMP-${Math.random().toString(36).slice(2, 6).toUpperCase()}-${Date.now().toString().slice(-4)}`;
+    const tenantId = `tenant-${Date.now()}`;
+    const tenantSlug = payload.slug.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const tenantAdminUsername = payload.tenantAdminUsername || `${tenantSlug}-admin`;
+    const tenantAdminEmail = payload.tenantAdminEmail || `${tenantSlug}-admin@${tenantSlug}.com`;
+    const tenantAdminPassword = payload.tenantAdminPassword || `${tenantSlug}@2026`;
+
     const newTenant: Tenant = {
-      ...tenant,
-      id: tenant.id || `tenant-${Date.now()}`,
-      accessToken: tenant.accessToken || `tok-${Math.random().toString(36).slice(2, 10)}`,
+      id: tenantId,
+      name: payload.name,
+      slug: tenantSlug,
+      subdomain: payload.slug.split('.')[0] || tenantSlug,
+      companyCode,
+      ownerName: payload.ownerName,
+      ownerEmail: payload.ownerEmail,
+      plan: payload.plan || 'One-Time Purchase',
+      status: 'active',
       createdAt: new Date().toISOString().split('T')[0],
-      status: tenant.status || 'pending'
+      accessToken: `tok-${Math.random().toString(36).slice(2, 10)}`,
+      registrationNumber: payload.registrationNumber,
+      companyAddress: payload.companyAddress,
+      companyPhone: payload.companyPhone,
+      companyEmail: payload.companyEmail,
+      country: payload.country,
+      state: payload.state,
+      city: payload.city,
+      logoUrl: payload.logoUrl,
+      subscriptionPlan: payload.plan,
+      expiryDate: payload.expiryDate,
+      tenantAdminUsername,
+      tenantAdminEmail,
+      tenantAdminPassword
     };
+
     tenants.push(newTenant);
     localStorage.setItem(KEYS.TENANTS, JSON.stringify(tenants));
 
-    const tenantId = newTenant.id;
-    const tenantAdminEmail = tenant.tenantAdminEmail || `${tenant.slug.replace(/[^a-z0-9]+/g, '-').toLowerCase()}-admin@${tenant.slug}.com`;
-    const tenantAdminPassword = tenant.tenantAdminPassword || `${tenant.slug.replace(/[^a-z0-9]+/g, '').toLowerCase()}@2026`;
     const tenantAdmin: UserAccount = {
       id: `usr-${tenantId}-admin`,
-      name: tenant.ownerName,
+      username: tenantAdminUsername,
+      name: payload.ownerName,
       email: tenantAdminEmail,
-      phone: tenant.companyPhone || '',
+      phone: payload.companyPhone || '',
       role: 'Tenant Admin',
       password: tenantAdminPassword,
       tenantId,
-      isTenantAdmin: true
+      isTenantAdmin: true,
+      status: 'active',
+      failedLoginAttempts: 0
     };
 
     localStorage.setItem(getTenantScopeKey(tenantId, KEYS.SETTINGS), JSON.stringify(cloneSeed(DEFAULT_SETTINGS)));
@@ -922,7 +957,6 @@ export const db = {
     localStorage.setItem(getTenantScopeKey(tenantId, KEYS.USERS), JSON.stringify([tenantAdmin]));
     localStorage.setItem(getTenantScopeKey(tenantId, KEYS.ROLES), JSON.stringify(DEFAULT_ROLES));
     localStorage.setItem(getTenantScopeKey(tenantId, KEYS.END_OF_DAY_REPORTS), JSON.stringify([]));
-    localStorage.setItem(LOCKDOWN_KEY, JSON.stringify(DEFAULT_LOCKDOWN_STATE));
 
     return newTenant;
   },
@@ -963,6 +997,20 @@ export const db = {
     const u = localStorage.getItem(getTenantScopeKey(tenantId, KEYS.USERS));
     return u ? JSON.parse(u) : [];
   },
+  getLoginHistory(): LoginHistoryItem[] {
+    const h = localStorage.getItem(KEYS.LOGIN_HISTORY);
+    return h ? JSON.parse(h) : [];
+  },
+  addLoginHistory(entry: Omit<LoginHistoryItem, 'id' | 'timestamp'>) {
+    const history = this.getLoginHistory();
+    const record: LoginHistoryItem = {
+      ...entry,
+      id: 'login-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+      timestamp: new Date().toISOString()
+    };
+    history.unshift(record);
+    localStorage.setItem(KEYS.LOGIN_HISTORY, JSON.stringify(history.slice(0, 200)));
+  },
   getSuperAdminUser(): UserAccount | null {
     const users = this.getUsersForTenant('tenant-root');
     return users.find(u => u.isSuperAdmin) || null;
@@ -974,8 +1022,10 @@ export const db = {
   authenticateSuperAdmin(email: string, password: string): UserAccount | null {
     const superAdmin = this.getSuperAdminUser();
     if (superAdmin && superAdmin.email.toLowerCase() === email.toLowerCase() && superAdmin.password === password) {
+      this.addLoginHistory({ userId: superAdmin.id, userEmail: superAdmin.email, username: superAdmin.username, tenantId: superAdmin.tenantId, success: true, message: 'Super admin login success' });
       return superAdmin;
     }
+    this.addLoginHistory({ userEmail: email, username: undefined, tenantId: 'tenant-root', success: false, message: 'Super admin login failed' });
     return null;
   },
   authenticateTenantUser(email: string, password: string): { user: UserAccount | null; tenant: Tenant | null } {
@@ -983,9 +1033,11 @@ export const db = {
     for (const tenant of tenants) {
       const user = this.getUsersForTenant(tenant.id).find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
       if (user) {
+        this.addLoginHistory({ userId: user.id, userEmail: user.email, username: user.username, tenantId: tenant.id, success: true, message: 'Tenant login success' });
         return { user, tenant };
       }
     }
+    this.addLoginHistory({ userEmail: email, username: undefined, tenantId: undefined, success: false, message: 'Tenant login failed' });
     return { user: null, tenant: null };
   },
   getEndOfDayReports(): EndOfDayReport[] {
