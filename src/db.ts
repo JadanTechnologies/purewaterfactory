@@ -80,11 +80,13 @@ const DEFAULT_TENANTS: Tenant[] = [
     id: 'tenant-root',
     name: 'Nile Premium Table Water Factory',
     slug: 'nile-premium',
+    subdomain: 'nile',
     ownerName: 'Adamu Ibrahim',
     ownerEmail: 'admin@nile.com',
     plan: 'One-Time Purchase',
     status: 'active',
-    createdAt: new Date().toISOString().split('T')[0]
+    createdAt: new Date().toISOString().split('T')[0],
+    accessToken: 'root-token-001'
   }
 ];
 
@@ -103,6 +105,7 @@ const getScopeKey = (key: string) => {
   return `${tenantId}:${key}`;
 };
 
+const getTenantScopeKey = (tenantId: string, key: string) => `${tenantId}:${key}`;
 const cloneSeed = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 
 export const INITIAL_INVENTORY: InventoryItem[] = [
@@ -840,41 +843,65 @@ export const db = {
     const t = localStorage.getItem(KEYS.TENANTS);
     return t ? JSON.parse(t) : DEFAULT_TENANTS;
   },
-  createTenant(tenant: Omit<Tenant, 'id' | 'createdAt'> & { id?: string }) {
+  getTenantBySubdomain(subdomain: string): Tenant | null {
+    const tenants = this.getTenants();
+    return tenants.find(t => t.subdomain.toLowerCase() === subdomain.toLowerCase()) || null;
+  },
+  getTenantBySlug(slug: string): Tenant | null {
+    const tenants = this.getTenants();
+    return tenants.find(t => t.slug.toLowerCase() === slug.toLowerCase()) || null;
+  },
+  createTenant(tenant: Omit<Tenant, 'id' | 'createdAt' | 'accessToken'> & { id?: string; accessToken?: string }) {
     const tenants = this.getTenants();
     const newTenant: Tenant = {
       ...tenant,
       id: tenant.id || `tenant-${Date.now()}`,
-      createdAt: new Date().toISOString().split('T')[0]
+      accessToken: tenant.accessToken || `tok-${Math.random().toString(36).slice(2, 10)}`,
+      createdAt: new Date().toISOString().split('T')[0],
+      status: tenant.status || 'pending'
     };
     tenants.push(newTenant);
     localStorage.setItem(KEYS.TENANTS, JSON.stringify(tenants));
-    localStorage.setItem(KEYS.ACTIVE_TENANT, newTenant.id);
 
-    localStorage.setItem(getScopeKey(KEYS.SETTINGS), JSON.stringify(cloneSeed(DEFAULT_SETTINGS)));
-    localStorage.setItem(getScopeKey(KEYS.INVENTORY), JSON.stringify(cloneSeed(INITIAL_INVENTORY)));
-    localStorage.setItem(getScopeKey(KEYS.CUSTOMERS), JSON.stringify(cloneSeed(INITIAL_CUSTOMERS)));
-    localStorage.setItem(getScopeKey(KEYS.SALES), JSON.stringify(cloneSeed(INITIAL_SALES)));
-    localStorage.setItem(getScopeKey(KEYS.PRODUCTION), JSON.stringify(cloneSeed(INITIAL_PRODUCTION)));
-    localStorage.setItem(getScopeKey(KEYS.EXPENSES), JSON.stringify(cloneSeed(INITIAL_EXPENSES)));
-    localStorage.setItem(getScopeKey(KEYS.RETURNS), JSON.stringify(cloneSeed(INITIAL_RETURNS)));
-    localStorage.setItem(getScopeKey(KEYS.LEAKAGES), JSON.stringify(cloneSeed(INITIAL_LEAKAGES)));
-    localStorage.setItem(getScopeKey(KEYS.EMPLOYEES), JSON.stringify(cloneSeed(INITIAL_EMPLOYEES)));
-    localStorage.setItem(getScopeKey(KEYS.DELIVERIES), JSON.stringify(cloneSeed(INITIAL_DELIVERIES)));
-    localStorage.setItem(getScopeKey(KEYS.NOTIFICATIONS), JSON.stringify([]));
-    localStorage.setItem(getScopeKey(KEYS.STOCK_MOVEMENTS), JSON.stringify([]));
-    localStorage.setItem(getScopeKey(KEYS.PAYMENTS), JSON.stringify([]));
-    localStorage.setItem(getScopeKey(KEYS.AUDIT_LOGS), JSON.stringify([]));
-    localStorage.setItem(getScopeKey(KEYS.USERS), JSON.stringify([]));
-    localStorage.setItem(getScopeKey(KEYS.ROLES), JSON.stringify(DEFAULT_ROLES));
-    localStorage.setItem(getScopeKey(KEYS.END_OF_DAY_REPORTS), JSON.stringify([]));
+    const tenantId = newTenant.id;
+    const tenantAdminEmail = tenant.tenantAdminEmail || `${tenant.slug.replace(/[^a-z0-9]+/g, '-').toLowerCase()}-admin@${tenant.slug}.com`;
+    const tenantAdminPassword = tenant.tenantAdminPassword || `${tenant.slug.replace(/[^a-z0-9]+/g, '').toLowerCase()}@2026`;
+    const tenantAdmin: UserAccount = {
+      id: `usr-${tenantId}-admin`,
+      name: tenant.ownerName,
+      email: tenantAdminEmail,
+      phone: tenant.companyPhone || '',
+      role: 'Tenant Admin',
+      password: tenantAdminPassword,
+      tenantId,
+      isTenantAdmin: true
+    };
+
+    localStorage.setItem(getTenantScopeKey(tenantId, KEYS.SETTINGS), JSON.stringify(cloneSeed(DEFAULT_SETTINGS)));
+    localStorage.setItem(getTenantScopeKey(tenantId, KEYS.INVENTORY), JSON.stringify(cloneSeed(INITIAL_INVENTORY)));
+    localStorage.setItem(getTenantScopeKey(tenantId, KEYS.CUSTOMERS), JSON.stringify(cloneSeed(INITIAL_CUSTOMERS)));
+    localStorage.setItem(getTenantScopeKey(tenantId, KEYS.SALES), JSON.stringify(cloneSeed(INITIAL_SALES)));
+    localStorage.setItem(getTenantScopeKey(tenantId, KEYS.PRODUCTION), JSON.stringify(cloneSeed(INITIAL_PRODUCTION)));
+    localStorage.setItem(getTenantScopeKey(tenantId, KEYS.EXPENSES), JSON.stringify(cloneSeed(INITIAL_EXPENSES)));
+    localStorage.setItem(getTenantScopeKey(tenantId, KEYS.RETURNS), JSON.stringify(cloneSeed(INITIAL_RETURNS)));
+    localStorage.setItem(getTenantScopeKey(tenantId, KEYS.LEAKAGES), JSON.stringify(cloneSeed(INITIAL_LEAKAGES)));
+    localStorage.setItem(getTenantScopeKey(tenantId, KEYS.EMPLOYEES), JSON.stringify(cloneSeed(INITIAL_EMPLOYEES)));
+    localStorage.setItem(getTenantScopeKey(tenantId, KEYS.DELIVERIES), JSON.stringify(cloneSeed(INITIAL_DELIVERIES)));
+    localStorage.setItem(getTenantScopeKey(tenantId, KEYS.NOTIFICATIONS), JSON.stringify([]));
+    localStorage.setItem(getTenantScopeKey(tenantId, KEYS.STOCK_MOVEMENTS), JSON.stringify([]));
+    localStorage.setItem(getTenantScopeKey(tenantId, KEYS.PAYMENTS), JSON.stringify([]));
+    localStorage.setItem(getTenantScopeKey(tenantId, KEYS.AUDIT_LOGS), JSON.stringify([]));
+    localStorage.setItem(getTenantScopeKey(tenantId, KEYS.USERS), JSON.stringify([tenantAdmin]));
+    localStorage.setItem(getTenantScopeKey(tenantId, KEYS.ROLES), JSON.stringify(DEFAULT_ROLES));
+    localStorage.setItem(getTenantScopeKey(tenantId, KEYS.END_OF_DAY_REPORTS), JSON.stringify([]));
     localStorage.setItem(LOCKDOWN_KEY, JSON.stringify(DEFAULT_LOCKDOWN_STATE));
 
     return newTenant;
   },
   switchTenant(tenantId: string) {
     const tenants = this.getTenants();
-    if (tenants.some(t => t.id === tenantId)) {
+    const tenant = tenants.find(t => t.id === tenantId);
+    if (tenant && tenant.status !== 'suspended') {
       localStorage.setItem(KEYS.ACTIVE_TENANT, tenantId);
       return true;
     }
@@ -883,6 +910,45 @@ export const db = {
   getActiveTenant(): Tenant | null {
     const tenantId = localStorage.getItem(KEYS.ACTIVE_TENANT) || 'tenant-root';
     return this.getTenants().find(t => t.id === tenantId) || null;
+  },
+  suspendTenant(tenantId: string, suspended: boolean) {
+    const tenants = this.getTenants();
+    const tenant = tenants.find(t => t.id === tenantId);
+    if (tenant) {
+      tenant.status = suspended ? 'suspended' : 'active';
+      localStorage.setItem(KEYS.TENANTS, JSON.stringify(tenants));
+      return tenant;
+    }
+    return null;
+  },
+  updateTenant(tenantId: string, updates: Partial<Tenant>) {
+    const tenants = this.getTenants();
+    const tenant = tenants.find(t => t.id === tenantId);
+    if (tenant) {
+      Object.assign(tenant, updates);
+      localStorage.setItem(KEYS.TENANTS, JSON.stringify(tenants));
+      return tenant;
+    }
+    return null;
+  },
+  getUsersForTenant(tenantId: string): UserAccount[] {
+    const u = localStorage.getItem(getTenantScopeKey(tenantId, KEYS.USERS));
+    return u ? JSON.parse(u) : [];
+  },
+  getSuperAdminUser(): UserAccount | null {
+    const users = this.getUsersForTenant('tenant-root');
+    return users.find(u => u.isSuperAdmin) || null;
+  },
+  authenticateUser(email: string, password: string, tenantId?: string): UserAccount | null {
+    const tenantUsers = tenantId ? this.getUsersForTenant(tenantId) : this.getUsers();
+    return tenantUsers.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password) || null;
+  },
+  authenticateSuperAdmin(email: string, password: string): UserAccount | null {
+    const superAdmin = this.getSuperAdminUser();
+    if (superAdmin && superAdmin.email.toLowerCase() === email.toLowerCase() && superAdmin.password === password) {
+      return superAdmin;
+    }
+    return null;
   },
   getEndOfDayReports(): EndOfDayReport[] {
     const r = localStorage.getItem(getScopeKey(KEYS.END_OF_DAY_REPORTS));

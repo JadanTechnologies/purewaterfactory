@@ -4,19 +4,19 @@
  */
 
 import React, { useState } from 'react';
-import { Shield, Key, Droplet, Users, Lock } from 'lucide-react';
-import { UserRole, UserAccount } from '../types';
+import { Shield, Key, Droplet, Users, Lock, Building2 } from 'lucide-react';
+import { UserAccount } from '../types';
 import { db } from '../db';
 
 interface LoginScreenProps {
-  onLogin: (user: UserAccount) => void;
+  onLogin: (user: UserAccount, tenantId?: string) => void;
 }
 
 export default function LoginScreen({ onLogin }: LoginScreenProps) {
-  const usersList = db.getUsers();
-  
-  const [selectedUserId, setSelectedUserId] = useState(usersList[0]?.id || 'usr-1');
+  const [email, setEmail] = useState('admin@nile.com');
   const [password, setPassword] = useState('password123');
+  const [tenantSubdomain, setTenantSubdomain] = useState('');
+  const [mode, setMode] = useState<'super' | 'tenant'>('super');
   const [error, setError] = useState('');
   const [showForgot, setShowForgot] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
@@ -24,20 +24,38 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!password) {
-      setError('Please enter your password.');
+    if (!email || !password) {
+      setError('Please enter your email and password.');
       return;
     }
-    const user = usersList.find(u => u.id === selectedUserId);
-    if (user) {
-      if (user.password && password !== user.password) {
-        setError('Incorrect password. Please verify security key.');
+
+    if (mode === 'super') {
+      const superAdmin = db.authenticateSuperAdmin(email, password);
+      if (superAdmin) {
+        onLogin(superAdmin, 'tenant-root');
         return;
       }
-      onLogin(user);
-    } else {
-      setError('Selected user not found.');
+      setError('Invalid software owner credentials.');
+      return;
     }
+
+    const tenant = db.getTenantBySubdomain(tenantSubdomain);
+    if (!tenant) {
+      setError('Tenant subdomain not found.');
+      return;
+    }
+    if (tenant.status === 'suspended') {
+      setError('This tenant portal is currently suspended.');
+      return;
+    }
+
+    const tenantAdmin = db.authenticateUser(email, password, tenant.id);
+    if (tenantAdmin) {
+      onLogin(tenantAdmin, tenant.id);
+      return;
+    }
+
+    setError('Invalid tenant admin credentials.');
   };
 
   const handleForgotSubmit = (e: React.FormEvent) => {
@@ -94,33 +112,43 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
                 <p className="text-slate-400 text-sm font-sans">Select your workspace role to begin session.</p>
               </div>
 
-              {/* Dropdown to Select User Account */}
+              <div className="flex gap-2 mb-4">
+                <button type="button" onClick={() => setMode('super')} className={`flex-1 rounded-xl border px-3 py-2 text-sm ${mode === 'super' ? 'border-sky-500 bg-sky-600 text-white' : 'border-slate-700 bg-slate-900 text-slate-300'}`}>
+                  Software Owner
+                </button>
+                <button type="button" onClick={() => setMode('tenant')} className={`flex-1 rounded-xl border px-3 py-2 text-sm ${mode === 'tenant' ? 'border-emerald-500 bg-emerald-600 text-white' : 'border-slate-700 bg-slate-900 text-slate-300'}`}>
+                  Tenant Admin
+                </button>
+              </div>
+
+              {mode === 'tenant' && (
+                <div className="space-y-2">
+                  <label className="text-xs font-display font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                    <Building2 className="w-3.5 h-3.5 text-emerald-400" /> Tenant Subdomain
+                  </label>
+                  <input
+                    value={tenantSubdomain}
+                    onChange={(e) => setTenantSubdomain(e.target.value)}
+                    placeholder="acme"
+                    className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-2.5 px-4 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 transition-all duration-200"
+                  />
+                </div>
+              )}
+
               <div className="space-y-2">
                 <label className="text-xs font-display font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                  <Users className="w-3.5 h-3.5 text-sky-400" /> Authorized User Account
+                  <Users className="w-3.5 h-3.5 text-sky-400" /> Email Address
                 </label>
-                <div className="relative">
-                  <select
-                    value={selectedUserId}
-                    onChange={(e) => {
-                      setSelectedUserId(e.target.value);
-                      setError('');
-                    }}
-                    className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-3 px-4 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-sky-500/40 focus:border-sky-500 transition-all duration-200 cursor-pointer appearance-none"
-                    id="user-select-dropdown"
-                  >
-                    {usersList.map((u) => (
-                      <option key={u.id} value={u.id} className="bg-slate-800 text-white py-2">
-                        {u.name} — {u.role} ({u.email})
-                      </option>
-                    ))}
-                  </select>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-slate-400">
-                    <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20">
-                      <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
-                    </svg>
-                  </div>
-                </div>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setError('');
+                  }}
+                  placeholder="owner@company.com"
+                  className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-2.5 px-4 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-sky-500/40 focus:border-sky-500 transition-all duration-200"
+                />
               </div>
 
               <div className="space-y-2">
@@ -158,7 +186,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
                 className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white font-display font-bold tracking-wide text-sm transition-all shadow-lg hover:shadow-sky-500/10 active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
                 id="login-submit-btn"
               >
-                <Shield className="w-4 h-4" /> Authenticate & Open Dashboard
+                <Shield className="w-4 h-4" /> {mode === 'super' ? 'Sign in as Software Owner' : 'Sign in as Tenant Admin'}
               </button>
             </form>
           ) : (

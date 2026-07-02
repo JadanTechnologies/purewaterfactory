@@ -187,11 +187,18 @@ export interface Tenant {
   id: string;
   name: string;
   slug: string;
+  subdomain: string;
   ownerName: string;
   ownerEmail: string;
   plan: 'One-Time Purchase';
-  status: 'active' | 'inactive';
+  status: 'active' | 'suspended' | 'pending';
   createdAt: string;
+  accessToken: string;
+  companyAddress?: string;
+  companyPhone?: string;
+  companyEmail?: string;
+  tenantAdminEmail?: string;
+  tenantAdminPassword?: string;
 }
 
 export interface UserAccount {
@@ -203,6 +210,7 @@ export interface UserAccount {
   password?: string;
   tenantId?: string;
   isSuperAdmin?: boolean;
+  isTenantAdmin?: boolean;
 }
 
 export interface AuditLog {

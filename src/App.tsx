@@ -340,13 +340,16 @@ export default function App() {
     showPopupNotification(`End of Day report generated for ${today}`, 'success');
   };
 
-  const handleLogin = (user: UserAccount) => {
+  const handleLogin = (user: UserAccount, tenantId?: string) => {
+    if (tenantId) {
+      db.switchTenant(tenantId);
+    }
     setCurrentUser(user);
     setAuthenticatedRole(user.role);
     setIsLoggedIn(true);
     db.addAudit(user.role as any, 'Sign In', `User ${user.name} authenticated successfully.`);
     syncDatabaseStates();
-    
+
     // Check for active lockdown after login
     const currentLockdown = db.getLockdownState();
     if (currentLockdown.lockdownEndDate && !currentLockdown.isLocked) {
