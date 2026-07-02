@@ -5,15 +5,17 @@
 
 import React, { useState } from 'react';
 import { Shield, Key, Droplet, Users, Lock } from 'lucide-react';
-import { UserAccount } from '../types';
+import { UserRole, UserAccount } from '../types';
 import { db } from '../db';
 
 interface LoginScreenProps {
-  onLogin: (user: UserAccount, tenantId?: string) => void;
+  onLogin: (user: UserAccount) => void;
 }
 
 export default function LoginScreen({ onLogin }: LoginScreenProps) {
-  const [email, setEmail] = useState('admin@nile.com');
+  const usersList = db.getUsers();
+  
+  const [selectedUserId, setSelectedUserId] = useState(usersList[0]?.id || 'usr-1');
   const [password, setPassword] = useState('password123');
   const [error, setError] = useState('');
   const [showForgot, setShowForgot] = useState(false);
@@ -22,28 +24,20 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
-      setError('Please enter your email and password.');
+    if (!password) {
+      setError('Please enter your password.');
       return;
     }
-
-    const superAdmin = db.authenticateSuperAdmin(email, password);
-    if (superAdmin) {
-      onLogin(superAdmin, 'tenant-root');
-      return;
-    }
-
-    const tenantLogin = db.authenticateTenantUser(email, password);
-    if (tenantLogin.user && tenantLogin.tenant) {
-      if (tenantLogin.tenant.status !== 'active') {
-        setError('Tenant account is not active. Contact platform support.');
+    const user = usersList.find(u => u.id === selectedUserId);
+    if (user) {
+      if (user.password && password !== user.password) {
+        setError('Incorrect password. Please verify security key.');
         return;
       }
-      onLogin(tenantLogin.user, tenantLogin.tenant.id);
-      return;
+      onLogin(user);
+    } else {
+      setError('Selected user not found.');
     }
-
-    setError('Invalid credentials. Please use your software-owner or tenant-admin login details.');
   };
 
   const handleForgotSubmit = (e: React.FormEvent) => {
@@ -60,54 +54,12 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 relative overflow-hidden" id="login-container">
-      <style>{`
-        @keyframes float-slow {
-          0%, 100% { transform: translateY(0px) rotate(0.5deg); }
-          50% { transform: translateY(-12px) rotate(-0.5deg); }
-        }
-        .animate-float-slow {
-          animation: float-slow 8s ease-in-out infinite;
-        }
-        @keyframes float-slow-reverse {
-          0%, 100% { transform: translateY(0px) rotate(-0.3deg); }
-          50% { transform: translateY(-8px) rotate(0.3deg); }
-        }
-        .animate-float-reverse {
-          animation: float-slow-reverse 10s ease-in-out infinite;
-        }
-        @keyframes pulse-glow {
-          0%, 100% { box-shadow: 0 0 20px rgba(56, 189, 246, 0.3); }
-          50% { box-shadow: 0 0 40px rgba(56, 189, 246, 0.5); }
-        }
-        .animate-pulse-glow {
-          animation: pulse-glow 4s ease-in-out infinite;
-        }
-        @keyframes float-droplet {
-          0%, 100% { transform: translateY(0) scale(1); opacity: 0.6; }
-          50% { transform: translateY(-20px) scale(1.1); opacity: 1; }
-        }
-        .animate-float-droplet {
-          animation: float-droplet 6s ease-in-out infinite;
-        }
-      `}</style>
-      
-      {/* Background floating elements */}
-      <div className="absolute -top-20 -left-20 w-40 h-40 bg-blue-500/20 rounded-full blur-3xl animate-float-reverse"></div>
-      <div className="absolute -bottom-24 -right-16 w-48 h-48 bg-teal-500/20 rounded-full blur-3xl animate-float-slow"></div>
-      <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-white/20 rounded-full animate-float-droplet" style={{ animationDelay: '0s' }}></div>
-      <div className="absolute top-3/4 right-1/3 w-3 h-3 bg-sky-300/30 rounded-full animate-float-droplet" style={{ animationDelay: '2s' }}></div>
-      <div className="absolute bottom-1/3 left-2/3 w-2.5 h-2.5 bg-teal-300/25 rounded-full animate-float-droplet" style={{ animationDelay: '4s' }}></div>
-      
-      <div className="w-full max-w-4xl bg-slate-800 rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden flex flex-col md:flex-row transition-all duration-300 animate-float-slow animate-pulse-glow relative z-10">
-         
+    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4" id="login-container">
+      <div className="w-full max-w-4xl bg-slate-800 rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden flex flex-col md:flex-row transition-all duration-300">
+        
         {/* Left pane: Branding & Concept */}
-        <div className="md:w-5/12 bg-gradient-to-br from-blue-600 via-sky-600 to-teal-500 p-8 flex flex-col justify-between text-white relative overflow-hidden">
+        <div className="md:w-5/12 bg-gradient-to-br from-blue-600 via-sky-600 to-teal-500 p-8 flex flex-col justify-between text-white relative">
           <div className="absolute inset-0 bg-black/10 mix-blend-overlay"></div>
-          {/* Floating water droplets decoration */}
-          <div className="absolute top-4 right-4 w-2 h-2 bg-white/30 rounded-full animate-float-slow"></div>
-          <div className="absolute top-12 right-12 w-3 h-3 bg-white/20 rounded-full animate-float-reverse"></div>
-          <div className="absolute bottom-20 left-8 w-2.5 h-2.5 bg-white/25 rounded-full animate-float-slow"></div>
           <div className="relative z-10">
             <div className="flex items-center gap-3">
               <div className="bg-white/20 p-2.5 rounded-xl backdrop-blur-md">
@@ -142,24 +94,33 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
                 <p className="text-slate-400 text-sm font-sans">Select your workspace role to begin session.</p>
               </div>
 
-              <div className="rounded-xl border border-sky-500/30 bg-sky-950/30 px-3 py-2 text-sm text-sky-200">
-                Use your software-owner login for the platform console, or use a tenant-admin login to open that company’s workspace.
-              </div>
-
+              {/* Dropdown to Select User Account */}
               <div className="space-y-2">
                 <label className="text-xs font-display font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                  <Users className="w-3.5 h-3.5 text-sky-400" /> Email or Username
+                  <Users className="w-3.5 h-3.5 text-sky-400" /> Authorized User Account
                 </label>
-                <input
-                  type="text"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    setError('');
-                  }}
-                  placeholder="owner@company.com or admin"
-                  className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-2.5 px-4 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-sky-500/40 focus:border-sky-500 transition-all duration-200"
-                />
+                <div className="relative">
+                  <select
+                    value={selectedUserId}
+                    onChange={(e) => {
+                      setSelectedUserId(e.target.value);
+                      setError('');
+                    }}
+                    className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-3 px-4 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-sky-500/40 focus:border-sky-500 transition-all duration-200 cursor-pointer appearance-none"
+                    id="user-select-dropdown"
+                  >
+                    {usersList.map((u) => (
+                      <option key={u.id} value={u.id} className="bg-slate-800 text-white py-2">
+                        {u.name} — {u.role} ({u.email})
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-slate-400">
+                    <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20">
+                      <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                    </svg>
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -197,7 +158,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
                 className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white font-display font-bold tracking-wide text-sm transition-all shadow-lg hover:shadow-sky-500/10 active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
                 id="login-submit-btn"
               >
-                <Shield className="w-4 h-4" /> Sign in to your workspace
+                <Shield className="w-4 h-4" /> Authenticate & Open Dashboard
               </button>
             </form>
           ) : (

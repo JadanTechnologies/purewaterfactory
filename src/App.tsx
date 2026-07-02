@@ -58,8 +58,7 @@ import {
   FactorySettings,
   UserAccount,
   CustomRole,
-  EndOfDayReport,
-  Tenant
+  EndOfDayReport
 } from './types';
 
 // Importing modules
@@ -141,7 +140,7 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserAccount>(() => {
     const savedUsers = db.getUsers();
-    return savedUsers[0] || { id: 'usr-1', name: 'Adamu Ibrahim', email: 'admin@nile.com', phone: '+234 803 111 2222', role: 'Administrator', password: 'password123', isSuperAdmin: true, tenantId: 'tenant-root' };
+    return savedUsers[0] || { id: 'usr-1', name: 'Adamu Ibrahim', email: 'admin@nile.com', phone: '+234 803 111 2222', role: 'Administrator', password: 'password123' };
   });
   const [authenticatedRole, setAuthenticatedRole] = useState<string>('Administrator');
   const [activeModule, setActiveModule] = useState('dashboard');
@@ -178,8 +177,6 @@ export default function App() {
   const [notifications, setNotifications] = useState<NotificationItem[]>(() => db.getNotifications());
   const [users, setUsers] = useState<UserAccount[]>(() => db.getUsers());
   const [roles, setRoles] = useState<CustomRole[]>(() => db.getRoles());
-  const [tenants, setTenants] = useState<Tenant[]>(() => db.getTenants());
-  const [activeTenant, setActiveTenant] = useState<Tenant | null>(() => db.getActiveTenant());
 
   // End of Day state
   const [endOfDayReports, setEndOfDayReports] = useState<EndOfDayReport[]>(() => db.getEndOfDayReports());
@@ -216,8 +213,6 @@ export default function App() {
     setNotifications(db.getNotifications());
     setUsers(db.getUsers());
     setRoles(db.getRoles());
-    setTenants(db.getTenants());
-    setActiveTenant(db.getActiveTenant());
     setLockdownState(db.getLockdownState());
     setEndOfDayReports(db.getEndOfDayReports());
   };
@@ -340,17 +335,13 @@ export default function App() {
     showPopupNotification(`End of Day report generated for ${today}`, 'success');
   };
 
-  const handleLogin = (user: UserAccount, tenantId?: string) => {
-    if (tenantId && !user.isSuperAdmin) {
-      db.switchTenant(tenantId);
-    }
+  const handleLogin = (user: UserAccount) => {
     setCurrentUser(user);
     setAuthenticatedRole(user.role);
     setIsLoggedIn(true);
-    setActiveModule(user.isSuperAdmin ? 'settings' : 'dashboard');
     db.addAudit(user.role as any, 'Sign In', `User ${user.name} authenticated successfully.`);
     syncDatabaseStates();
-
+    
     // Check for active lockdown after login
     const currentLockdown = db.getLockdownState();
     if (currentLockdown.lockdownEndDate && !currentLockdown.isLocked) {
@@ -489,77 +480,6 @@ export default function App() {
     showPopupNotification(`Role ${role.name} saved`, 'success');
   };
 
-  const handleCreateTenant = (payload: {
-    name: string;
-    ownerName: string;
-    ownerEmail: string;
-    slug: string;
-    companyAddress: string;
-    companyPhone: string;
-    companyEmail: string;
-    registrationNumber: string;
-    country: string;
-    state: string;
-    city: string;
-    plan: string;
-    expiryDate: string;
-    tenantAdminUsername: string;
-    tenantAdminEmail: string;
-    tenantAdminPassword: string;
-  }) => {
-    const created = db.createTenant({
-      name: payload.name,
-      slug: payload.slug,
-      ownerName: payload.ownerName,
-      ownerEmail: payload.ownerEmail,
-      companyAddress: payload.companyAddress,
-      companyPhone: payload.companyPhone,
-      companyEmail: payload.companyEmail,
-      registrationNumber: payload.registrationNumber,
-      country: payload.country,
-      state: payload.state,
-      city: payload.city,
-      plan: payload.plan as any,
-      expiryDate: payload.expiryDate,
-      tenantAdminUsername: payload.tenantAdminUsername,
-      tenantAdminEmail: payload.tenantAdminEmail,
-      tenantAdminPassword: payload.tenantAdminPassword
-    });
-    syncDatabaseStates();
-    playSound('success');
-    const loginLink = `${window.location.origin}?tenant=${created.slug}`;
-    window.alert(`Tenant portal created for ${created.name}.\nTenant admin username: ${created.tenantAdminUsername}\nTenant admin email: ${created.tenantAdminEmail}\nTenant admin password: ${created.tenantAdminPassword}\nLogin link: ${loginLink}`);
-    showPopupNotification(`Tenant portal created for ${created.name}.`, 'success');
-    return created;
-  };
-
-  const handleSwitchTenant = (tenantId: string) => {
-    const switched = db.switchTenant(tenantId);
-    if (switched) {
-      syncDatabaseStates();
-      playSound('notification');
-      showPopupNotification('Portal switched successfully', 'success');
-    }
-  };
-
-  const handleToggleTenantStatus = (tenantId: string, suspended: boolean) => {
-    const updated = db.suspendTenant(tenantId, suspended);
-    if (updated) {
-      syncDatabaseStates();
-      playSound('notification');
-      showPopupNotification(`Tenant ${updated.name} ${suspended ? 'suspended' : 'reactivated'}`, 'success');
-    }
-  };
-
-  const handleRefreshTenantToken = (tenantId: string) => {
-    const refreshed = db.updateTenant(tenantId, { accessToken: `tok-${Math.random().toString(36).slice(2, 10)}` });
-    if (refreshed) {
-      syncDatabaseStates();
-      playSound('success');
-      showPopupNotification(`Token refreshed for ${refreshed.name}`, 'success');
-    }
-  };
-
   const handleDeleteRole = (id: string) => {
     db.deleteRole(id);
     syncDatabaseStates();
@@ -625,16 +545,6 @@ export default function App() {
   const hasAccess = (moduleName: string): boolean => {
     // Block all access if system is locked
     if (lockdownState.isLocked) return false;
-
-    // Super Admin (platform owner) has full access to all modules
-    if (currentUser.isSuperAdmin) {
-      return true;
-    }
-
-    // Tenant Admin has access to all modules except platform settings
-    if (currentUser.isTenantAdmin) {
-      return true; // Full access within their tenant scope
-    }
     
     const roleName = currentUser.role;
     // Check if dynamic role is defined in roles
@@ -1217,13 +1127,6 @@ export default function App() {
                   onDeleteUser={handleDeleteUser}
                   onSaveRole={handleSaveRole}
                   onDeleteRole={handleDeleteRole}
-                  onCreateTenant={handleCreateTenant}
-                  currentUser={currentUser}
-                  ownerStats={db.getOwnerDashboardStats()}
-                  ownerReports={db.getOwnerReports()}
-                  tenants={tenants}
-                  onToggleTenantStatus={handleToggleTenantStatus}
-                  onRefreshTenantToken={handleRefreshTenantToken}
                   lockdownState={{
                     lockdownEndDate: lockdownState.lockdownEndDate,
                     isLocked: lockdownState.isLocked,
