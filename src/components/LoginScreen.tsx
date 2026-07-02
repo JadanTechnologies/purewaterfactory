@@ -54,12 +54,54 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4" id="login-container">
-      <div className="w-full max-w-4xl bg-slate-800 rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden flex flex-col md:flex-row transition-all duration-300">
-        
+    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 relative overflow-hidden" id="login-container">
+      <style>{`
+        @keyframes float-slow {
+          0%, 100% { transform: translateY(0px) rotate(0.5deg); }
+          50% { transform: translateY(-12px) rotate(-0.5deg); }
+        }
+        .animate-float-slow {
+          animation: float-slow 8s ease-in-out infinite;
+        }
+        @keyframes float-slow-reverse {
+          0%, 100% { transform: translateY(0px) rotate(-0.3deg); }
+          50% { transform: translateY(-8px) rotate(0.3deg); }
+        }
+        .animate-float-reverse {
+          animation: float-slow-reverse 10s ease-in-out infinite;
+        }
+        @keyframes pulse-glow {
+          0%, 100% { box-shadow: 0 0 20px rgba(56, 189, 246, 0.3); }
+          50% { box-shadow: 0 0 40px rgba(56, 189, 246, 0.5); }
+        }
+        .animate-pulse-glow {
+          animation: pulse-glow 4s ease-in-out infinite;
+        }
+        @keyframes float-droplet {
+          0%, 100% { transform: translateY(0) scale(1); opacity: 0.6; }
+          50% { transform: translateY(-20px) scale(1.1); opacity: 1; }
+        }
+        .animate-float-droplet {
+          animation: float-droplet 6s ease-in-out infinite;
+        }
+      `}</style>
+      
+      {/* Background floating elements */}
+      <div className="absolute -top-20 -left-20 w-40 h-40 bg-blue-500/20 rounded-full blur-3xl animate-float-reverse"></div>
+      <div className="absolute -bottom-24 -right-16 w-48 h-48 bg-teal-500/20 rounded-full blur-3xl animate-float-slow"></div>
+      <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-white/20 rounded-full animate-float-droplet" style={{ animationDelay: '0s' }}></div>
+      <div className="absolute top-3/4 right-1/3 w-3 h-3 bg-sky-300/30 rounded-full animate-float-droplet" style={{ animationDelay: '2s' }}></div>
+      <div className="absolute bottom-1/3 left-2/3 w-2.5 h-2.5 bg-teal-300/25 rounded-full animate-float-droplet" style={{ animationDelay: '4s' }}></div>
+      
+      <div className="w-full max-w-4xl bg-slate-800 rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden flex flex-col md:flex-row transition-all duration-300 animate-float-slow animate-pulse-glow relative z-10">
+         
         {/* Left pane: Branding & Concept */}
-        <div className="md:w-5/12 bg-gradient-to-br from-blue-600 via-sky-600 to-teal-500 p-8 flex flex-col justify-between text-white relative">
+        <div className="md:w-5/12 bg-gradient-to-br from-blue-600 via-sky-600 to-teal-500 p-8 flex flex-col justify-between text-white relative overflow-hidden">
           <div className="absolute inset-0 bg-black/10 mix-blend-overlay"></div>
+          {/* Floating water droplets decoration */}
+          <div className="absolute top-4 right-4 w-2 h-2 bg-white/30 rounded-full animate-float-slow"></div>
+          <div className="absolute top-12 right-12 w-3 h-3 bg-white/20 rounded-full animate-float-reverse"></div>
+          <div className="absolute bottom-20 left-8 w-2.5 h-2.5 bg-white/25 rounded-full animate-float-slow"></div>
           <div className="relative z-10">
             <div className="flex items-center gap-3">
               <div className="bg-white/20 p-2.5 rounded-xl backdrop-blur-md">
