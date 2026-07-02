@@ -74,6 +74,7 @@ interface SettingsModuleProps {
     tenantAdminEmail: string;
     tenantAdminPassword: string;
   }) => void;
+  currentUser?: UserAccount;
   lockdownState?: { lockdownEndDate: string | null; isLocked: boolean; onActivateLockdown: () => void; onUnlockWithToken: (token: string) => boolean; onClearLockdown: () => void; };
   endOfDayReports?: EndOfDayReport[];
   ownerStats?: { totalTenants: number; activeTenants: number; inactiveTenants: number; totalTokensGenerated: number; totalRevenueGenerated: number };
@@ -114,6 +115,7 @@ export default function SettingsModule({
   onSaveRole,
   onDeleteRole,
   onCreateTenant,
+  currentUser,
   lockdownState,
   endOfDayReports = [],
   ownerStats,
@@ -230,7 +232,7 @@ const playSound = (type: 'success' | 'warning') => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const canWrite = activeRole === 'Administrator';
+  const canWrite = activeRole === 'Administrator' || currentUser?.isTenantAdmin;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -443,9 +445,10 @@ const playSound = (type: 'success' | 'warning') => {
     }
   };
 
-  return (
+return (
     <div className="space-y-6" id="settings-module">
       
+      {/* Super Admin Owner Command Center - Platform Owner Only */}
       {activeRole === 'Administrator' && (
         <div className="space-y-4">
           <div className="rounded-3xl border border-sky-500/30 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 p-6 shadow-2xl">
@@ -507,7 +510,7 @@ const playSound = (type: 'success' | 'warning') => {
                   <input value={tenantCountry} onChange={(e) => setTenantCountry(e.target.value)} placeholder="Country" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
                   <input value={tenantState} onChange={(e) => setTenantState(e.target.value)} placeholder="State" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
                   <input value={tenantCity} onChange={(e) => setTenantCity(e.target.value)} placeholder="City" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
-<input value={tenantAdminUsername} onChange={(e) => setTenantAdminUsername(e.target.value)} placeholder="Tenant admin username" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+                  <input value={tenantAdminUsername} onChange={(e) => setTenantAdminUsername(e.target.value)} placeholder="Tenant admin username" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
                   <input value={tenantAdminEmail} onChange={(e) => setTenantAdminEmail(e.target.value)} placeholder="Tenant admin email" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
                   <input value={tenantAdminPassword} onChange={(e) => setTenantAdminPassword(e.target.value)} placeholder="Tenant admin password" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
                   <select value={tenantPlan} onChange={(e) => setTenantPlan(e.target.value)} className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white">
@@ -605,17 +608,19 @@ const playSound = (type: 'success' | 'warning') => {
         <div>
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <Settings className="text-sky-400 w-5 h-5" />
-            {language === 'en' ? 'System Configuration Panel' : 'Saitun Masana\'anta'}
+            {language === 'en' ? (activeRole === 'Administrator' ? 'Super Admin Settings' : 'Company Settings') : 'Saitun Masana\'anta'}
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
             {language === 'en' 
-              ? 'Configure business logo cards, roles permission parameters, and factory settings.' 
+              ? (activeRole === 'Administrator' 
+                  ? 'Platform-wide configurations and factory parameters.' 
+                  : 'Configure business logo cards, roles permission parameters, and factory settings.')
               : 'Gudanar da sunan masana\'anta, iyakar kayayyaki, duba rabe-raben aiki.'}
           </p>
         </div>
       </div>
 
-      {/* Sub-Tabs Selector (Admin Only!) */}
+      {/* Sub-Tabs Selector - Show for both Super Admin and Tenant Admin */}
       {canWrite && (
         <div className="flex border-b border-slate-700 gap-1 overflow-x-auto">
           <button

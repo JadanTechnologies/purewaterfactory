@@ -626,12 +626,14 @@ export default function App() {
     // Block all access if system is locked
     if (lockdownState.isLocked) return false;
 
+    // Super Admin (platform owner) has full access to all modules
     if (currentUser.isSuperAdmin) {
-      return moduleName === 'settings';
+      return true;
     }
 
+    // Tenant Admin has access to all modules except platform settings
     if (currentUser.isTenantAdmin) {
-      return moduleName !== 'settings';
+      return true; // Full access within their tenant scope
     }
     
     const roleName = currentUser.role;
@@ -1216,6 +1218,7 @@ export default function App() {
                   onSaveRole={handleSaveRole}
                   onDeleteRole={handleDeleteRole}
                   onCreateTenant={handleCreateTenant}
+                  currentUser={currentUser}
                   ownerStats={db.getOwnerDashboardStats()}
                   ownerReports={db.getOwnerReports()}
                   tenants={tenants}
