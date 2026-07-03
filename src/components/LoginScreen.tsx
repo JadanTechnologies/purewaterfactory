@@ -54,8 +54,29 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4" id="login-container">
-      <div className="w-full max-w-4xl bg-slate-800 rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden flex flex-col md:flex-row transition-all duration-300">
+    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 relative overflow-hidden" id="login-container">
+      <style>{`
+        @keyframes float-slow {
+          0%, 100% { transform: translateY(0px) rotate(0.5deg); }
+          50% { transform: translateY(-12px) rotate(-0.5deg); }
+        }
+        .animate-float-slow {
+          animation: float-slow 8s ease-in-out infinite;
+        }
+        @keyframes pulse-glow {
+          0%, 100% { box-shadow: 0 0 20px rgba(56, 189, 246, 0.3); }
+          50% { box-shadow: 0 0 40px rgba(56, 189, 246, 0.5); }
+        }
+        .animate-pulse-glow {
+          animation: pulse-glow 4s ease-in-out infinite;
+        }
+      `}</style>
+      
+      {/* Background floating elements */}
+      <div className="absolute -top-20 -left-20 w-40 h-40 bg-blue-500/20 rounded-full blur-3xl animate-float-slow"></div>
+      <div className="absolute -bottom-24 -right-16 w-48 h-48 bg-teal-500/20 rounded-full blur-3xl animate-float-slow"></div>
+      
+      <div className="w-full max-w-4xl bg-slate-800 rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden flex flex-col md:flex-row transition-all duration-300 animate-float-slow animate-pulse-glow relative z-10">
         
         {/* Left pane: Branding & Concept */}
         <div className="md:w-5/12 bg-gradient-to-br from-blue-600 via-sky-600 to-teal-500 p-8 flex flex-col justify-between text-white relative">
