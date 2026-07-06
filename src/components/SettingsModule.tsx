@@ -31,7 +31,7 @@ import {
   Calendar,
   Printer
 } from 'lucide-react';
-import { FactorySettings, UserRole, UserAccount, CustomRole, LockdownState, EndOfDayReport } from '../types';
+import { FactorySettings, UserRole, UserAccount, CustomRole, LockdownState, EndOfDayReport, Tenant } from '../types';
 
 interface SettingsModuleProps {
   settings: FactorySettings;
@@ -47,9 +47,14 @@ interface SettingsModuleProps {
   onDeleteUser?: (id: string) => void;
   onSaveRole?: (role: CustomRole) => void;
   onDeleteRole?: (id: string) => void;
+  onSaveTenant?: (tenant: Tenant) => void;
+  onDeleteTenant?: (id: string) => void;
   lockdownState?: { lockdownEndDate: string | null; isLocked: boolean; onActivateLockdown: () => void; onUnlockWithToken: (token: string) => boolean; onClearLockdown: () => void; };
   endOfDayReports?: EndOfDayReport[];
+  tenants?: Tenant[];
 }
+
+const isSuperAdmin = (role: string) => role === 'Super Admin';
 
 const AVAILABLE_MODULES = [
   { id: 'dashboard', label: 'Dashboard Overview', desc: 'Main factory performance summary and dynamic digital clock' },
@@ -81,12 +86,15 @@ export default function SettingsModule({
   onDeleteUser,
   onSaveRole,
   onDeleteRole,
+  onSaveTenant,
+  onDeleteTenant,
   lockdownState,
-  endOfDayReports = []
+  endOfDayReports = [],
+  tenants = []
 }: SettingsModuleProps) {
   
   // Tabs management
-  const [activeSubTab, setActiveSubTab] = useState<'parameters' | 'roles' | 'users' | 'eod'>('parameters');
+  const [activeSubTab, setActiveSubTab] = useState<'parameters' | 'roles' | 'users' | 'eod' | 'tenants'>(isSuperAdmin(activeRole) ? 'tenants' : 'parameters');
   const [lockdownToken, setLockdownToken] = useState('');
 
 const playSound = (type: 'success' | 'warning') => {
@@ -175,9 +183,24 @@ const playSound = (type: 'success' | 'warning') => {
   const [userPassword, setUserPassword] = useState('');
   const [showUserForm, setShowUserForm] = useState(false);
 
+  // Tenant Management state
+  const [showTenantForm, setShowTenantForm] = useState(false);
+  const [editingTenantId, setEditingTenantId] = useState<string | null>(null);
+  const [tenantName, setTenantName] = useState('');
+  const [tenantBusinessName, setTenantBusinessName] = useState('');
+  const [tenantEmail, setTenantEmail] = useState('');
+  const [tenantPhone, setTenantPhone] = useState('');
+  const [tenantAddress, setTenantAddress] = useState('');
+  const [tenantStatus, setTenantStatus] = useState<'active' | 'inactive' | 'trial'>('active');
+  const [tenantPaymentStatus, setTenantPaymentStatus] = useState<'paid' | 'unpaid' | 'overdue'>('paid');
+  const [tenantPlan, setTenantPlan] = useState('Basic');
+  const [tenantStartDate, setTenantStartDate] = useState('');
+  const [tenantEndDate, setTenantEndDate] = useState('');
+  const [tenantAdminUserId, setTenantAdminUserId] = useState('');
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const canWrite = activeRole === 'Administrator' || activeRole === 'Super Admin';
+  const canWrite = activeRole === 'Administrator' || isSuperAdmin(activeRole);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -349,6 +372,64 @@ const playSound = (type: 'success' | 'warning') => {
     }
   };
 
+  const handleOpenTenantForm = (tenant?: Tenant) => {
+    if (tenant) {
+      setEditingTenantId(tenant.id);
+      setTenantName(tenant.name);
+      setTenantBusinessName(tenant.businessName);
+      setTenantEmail(tenant.email);
+      setTenantPhone(tenant.phone);
+      setTenantAddress(tenant.address);
+      setTenantStatus(tenant.status);
+      setTenantPaymentStatus(tenant.paymentStatus);
+      setTenantPlan(tenant.plan);
+      setTenantStartDate(tenant.startDate);
+      setTenantEndDate(tenant.endDate);
+      setTenantAdminUserId(tenant.adminUserId);
+    } else {
+      setEditingTenantId(null);
+      setTenantName('');
+      setTenantBusinessName('');
+      setTenantEmail('');
+      setTenantPhone('');
+      setTenantAddress('');
+      setTenantStatus('active');
+      setTenantPaymentStatus('paid');
+      setTenantPlan('Basic');
+      setTenantStartDate('');
+      setTenantEndDate('');
+      setTenantAdminUserId('');
+    }
+    setShowTenantForm(true);
+  };
+
+  const handleSaveTenantSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tenantName.trim() || !tenantBusinessName.trim()) return;
+
+    const id = editingTenantId || 'tenant-' + Date.now();
+    const tenant: Tenant = {
+      id,
+      name: tenantName.trim(),
+      businessName: tenantBusinessName.trim(),
+      email: tenantEmail.trim(),
+      phone: tenantPhone.trim(),
+      address: tenantAddress.trim(),
+      status: tenantStatus,
+      paymentStatus: tenantPaymentStatus,
+      plan: tenantPlan,
+      startDate: tenantStartDate || new Date().toISOString().split('T')[0],
+      endDate: tenantEndDate,
+      adminUserId: tenantAdminUserId
+    };
+
+    if (onSaveTenant) {
+      onSaveTenant(tenant);
+    }
+    alert('Tenant saved successfully.');
+    setShowTenantForm(false);
+  };
+
   return (
     <div className="space-y-6" id="settings-module">
       
@@ -357,12 +438,18 @@ const playSound = (type: 'success' | 'warning') => {
         <div>
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <Settings className="text-sky-400 w-5 h-5" />
-            {language === 'en' ? 'System Configuration Panel' : 'Saitun Masana\'anta'}
+            {isSuperAdmin(activeRole) 
+              ? (language === 'en' ? 'Platform Configuration Panel' : 'Saitun Dandali')
+              : (language === 'en' ? 'System Configuration Panel' : 'Saitun Masana\'anta')
+            }
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            {language === 'en' 
-              ? 'Configure business logo cards, roles permission parameters, and factory settings.' 
-              : 'Gudanar da sunan masana\'anta, iyakar kayayyaki, duba rabe-raben aiki.'}
+            {isSuperAdmin(activeRole)
+              ? (language === 'en' ? 'Manage platform tenants, administrators, and platform-wide settings.' : 'Gudanar da ma]aikata, shugabanni, da saitunan dandali.')
+              : (language === 'en' 
+                ? 'Configure business logo cards, roles permission parameters, and factory settings.' 
+                : 'Gudanar da sunan masana\'anta, iyakar kayayyaki, duba rabe-raben aiki.')
+            }
           </p>
         </div>
       </div>
@@ -370,58 +457,77 @@ const playSound = (type: 'success' | 'warning') => {
       {/* Sub-Tabs Selector (Admin Only!) */}
       {canWrite && (
         <div className="flex border-b border-slate-700 gap-1 overflow-x-auto">
-          <button
-            onClick={() => { setActiveSubTab('parameters'); setShowRoleForm(false); setShowUserForm(false); }}
-            className={`pb-3 px-4 text-xs font-bold transition-all cursor-pointer border-b-2 whitespace-nowrap ${
-              activeSubTab === 'parameters'
-                ? 'border-sky-500 text-white font-black'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <Settings className="w-3.5 h-3.5" />
-              Factory Parameters
-            </span>
-          </button>
-          <button
-            onClick={() => { setActiveSubTab('roles'); setShowRoleForm(false); setShowUserForm(false); }}
-            className={`pb-3 px-4 text-xs font-bold transition-all cursor-pointer border-b-2 whitespace-nowrap ${
-              activeSubTab === 'roles'
-                ? 'border-sky-500 text-white font-black'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <Shield className="w-3.5 h-3.5" />
-              Roles & Permissions
-            </span>
-          </button>
-          <button
-            onClick={() => { setActiveSubTab('users'); setShowRoleForm(false); setShowUserForm(false); }}
-            className={`pb-3 px-4 text-xs font-bold transition-all cursor-pointer border-b-2 whitespace-nowrap ${
-              activeSubTab === 'users'
-                ? 'border-sky-500 text-white font-black'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <Users className="w-3.5 h-3.5" />
-              Users & Passwords
-            </span>
-          </button>
-          <button
-            onClick={() => { setActiveSubTab('eod'); setShowRoleForm(false); setShowUserForm(false); }}
-            className={`pb-3 px-4 text-xs font-bold transition-all cursor-pointer border-b-2 whitespace-nowrap ${
-              activeSubTab === 'eod'
-                ? 'border-sky-500 text-white font-black'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <Calendar className="w-3.5 h-3.5" />
-              End of Day Reports
-            </span>
-          </button>
+          {!isSuperAdmin(activeRole) && (
+            <>
+              <button
+                onClick={() => { setActiveSubTab('parameters'); setShowRoleForm(false); setShowUserForm(false); }}
+                className={`pb-3 px-4 text-xs font-bold transition-all cursor-pointer border-b-2 whitespace-nowrap ${
+                  activeSubTab === 'parameters'
+                    ? 'border-sky-500 text-white font-black'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <Settings className="w-3.5 h-3.5" />
+                  Factory Parameters
+                </span>
+              </button>
+              <button
+                onClick={() => { setActiveSubTab('roles'); setShowRoleForm(false); setShowUserForm(false); }}
+                className={`pb-3 px-4 text-xs font-bold transition-all cursor-pointer border-b-2 whitespace-nowrap ${
+                  activeSubTab === 'roles'
+                    ? 'border-sky-500 text-white font-black'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <Shield className="w-3.5 h-3.5" />
+                  Roles & Permissions
+                </span>
+              </button>
+              <button
+                onClick={() => { setActiveSubTab('users'); setShowRoleForm(false); setShowUserForm(false); }}
+                className={`pb-3 px-4 text-xs font-bold transition-all cursor-pointer border-b-2 whitespace-nowrap ${
+                  activeSubTab === 'users'
+                    ? 'border-sky-500 text-white font-black'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <Users className="w-3.5 h-3.5" />
+                  Users & Passwords
+                </span>
+              </button>
+              <button
+                onClick={() => { setActiveSubTab('eod'); setShowRoleForm(false); setShowUserForm(false); }}
+                className={`pb-3 px-4 text-xs font-bold transition-all cursor-pointer border-b-2 whitespace-nowrap ${
+                  activeSubTab === 'eod'
+                    ? 'border-sky-500 text-white font-black'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <Calendar className="w-3.5 h-3.5" />
+                  End of Day Reports
+                </span>
+              </button>
+            </>
+          )}
+          {isSuperAdmin(activeRole) && (
+            <button
+              onClick={() => { setActiveSubTab('tenants'); setShowRoleForm(false); setShowUserForm(false); }}
+              className={`pb-3 px-4 text-xs font-bold transition-all cursor-pointer border-b-2 whitespace-nowrap ${
+                activeSubTab === 'tenants'
+                  ? 'border-sky-500 text-white font-black'
+                  : 'border-transparent text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <Users className="w-3.5 h-3.5" />
+                Tenant Management
+              </span>
+            </button>
+          )}
         </div>
       )}
 
@@ -1172,6 +1278,175 @@ const playSound = (type: 'success' | 'warning') => {
                         </td>
                       </tr>
                     ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab content: Tenant Management (Super Admin Only) */}
+      {activeSubTab === 'tenants' && isSuperAdmin(activeRole) && (
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-800/20 p-4 rounded-xl border border-slate-700/40">
+            <div>
+              <h3 className="text-sm font-bold text-white">Tenant Management</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Manage tenant businesses, status, and subscription plans.</p>
+            </div>
+            {!showTenantForm && (
+              <button
+                onClick={() => handleOpenTenantForm()}
+                className="py-2 px-4 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <Plus className="w-4 h-4" /> Create Tenant
+              </button>
+            )}
+          </div>
+
+          {showTenantForm ? (
+            <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-6">
+              <div className="flex justify-between items-center border-b border-slate-700 pb-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-white">
+                  {editingTenantId ? `Edit Tenant` : 'Create New Tenant'}
+                </h4>
+                <button
+                  onClick={() => setShowTenantForm(false)}
+                  className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-700 transition-all cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveTenantSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-slate-400">Factory / Business Name</label>
+                  <input type="text" required value={tenantName} onChange={(e) => setTenantName(e.target.value)} className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-slate-400">Business Display Name</label>
+                  <input type="text" required value={tenantBusinessName} onChange={(e) => setTenantBusinessName(e.target.value)} className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-slate-400">Contact Email</label>
+                  <input type="email" required value={tenantEmail} onChange={(e) => setTenantEmail(e.target.value)} className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-slate-400">Phone Number</label>
+                  <input type="text" required value={tenantPhone} onChange={(e) => setTenantPhone(e.target.value)} className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-slate-400">Address</label>
+                  <input type="text" value={tenantAddress} onChange={(e) => setTenantAddress(e.target.value)} className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-slate-400">Status</label>
+                  <select value={tenantStatus} onChange={(e) => setTenantStatus(e.target.value as any)} className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none">
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="trial">Trial</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-slate-400">Payment Status</label>
+                  <select value={tenantPaymentStatus} onChange={(e) => setTenantPaymentStatus(e.target.value as any)} className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none">
+                    <option value="paid">Paid</option>
+                    <option value="unpaid">Unpaid</option>
+                    <option value="overdue">Overdue</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-slate-400">Subscription Plan</label>
+                  <select value={tenantPlan} onChange={(e) => setTenantPlan(e.target.value)} className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none">
+                    <option value="Basic">Basic</option>
+                    <option value="Standard">Standard</option>
+                    <option value="Enterprise">Enterprise</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-slate-400">Start Date</label>
+                  <input type="date" value={tenantStartDate} onChange={(e) => setTenantStartDate(e.target.value)} className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-slate-400">End Date</label>
+                  <input type="date" value={tenantEndDate} onChange={(e) => setTenantEndDate(e.target.value)} className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none" />
+                </div>
+                <div className="md:col-span-2 flex justify-end gap-3 pt-3 border-t border-slate-700/60">
+                  <button type="button" onClick={() => setShowTenantForm(false)} className="py-2.5 px-4 rounded-xl border border-slate-700 text-slate-300 font-semibold text-xs hover:bg-slate-700 transition-all cursor-pointer">Cancel</button>
+                  <button type="submit" className="py-2.5 px-5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs transition-all shadow-md cursor-pointer">Save Tenant</button>
+                </div>
+              </form>
+            </div>
+          ) : (
+            <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden shadow-lg">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-900/60 border-b border-slate-700/80 text-[10px] font-mono uppercase tracking-wider text-slate-400">
+                      <th className="py-3.5 px-5 font-bold">Tenant Name</th>
+                      <th className="py-3.5 px-5 font-bold">Business</th>
+                      <th className="py-3.5 px-5 font-bold">Email</th>
+                      <th className="py-3.5 px-5 font-bold">Phone</th>
+                      <th className="py-3.5 px-5 font-bold">Status</th>
+                      <th className="py-3.5 px-5 font-bold">Payment</th>
+                      <th className="py-3.5 px-5 font-bold">Plan</th>
+                      <th className="py-3.5 px-5 font-bold text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-700/40 text-xs text-slate-200">
+                    {tenants.map((t) => (
+                      <tr key={t.id} className="hover:bg-slate-700/20 transition-all">
+                        <td className="py-3.5 px-5 font-bold text-white">{t.name}</td>
+                        <td className="py-3.5 px-5 text-slate-300">{t.businessName}</td>
+                        <td className="py-3.5 px-5 text-slate-300">{t.email}</td>
+                        <td className="py-3.5 px-5 text-slate-300 font-mono">{t.phone || '-'}</td>
+                        <td className="py-3.5 px-5">
+                          <span className={`px-2 py-0.5 rounded font-bold uppercase text-[10px] ${
+                            t.status === 'active' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' :
+                            t.status === 'inactive' ? 'bg-rose-500/15 text-rose-400 border border-rose-500/20' :
+                            'bg-amber-500/15 text-amber-400 border border-amber-500/20'
+                          }`}>{t.status}</span>
+                        </td>
+                        <td className="py-3.5 px-5">
+                          <span className={`px-2 py-0.5 rounded font-bold uppercase text-[10px] ${
+                            t.paymentStatus === 'paid' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' :
+                            t.paymentStatus === 'overdue' ? 'bg-rose-500/15 text-rose-400 border border-rose-500/20' :
+                            'bg-amber-500/15 text-amber-400 border border-amber-500/20'
+                          }`}>{t.paymentStatus}</span>
+                        </td>
+                        <td className="py-3.5 px-5">
+                          <span className="px-2 py-0.5 rounded bg-slate-900 text-slate-300 border border-slate-700/50 font-bold uppercase text-[10px]">{t.plan}</span>
+                        </td>
+                        <td className="py-3.5 px-5 text-right">
+                          <div className="inline-flex gap-2">
+                            <button
+                              onClick={() => handleOpenTenantForm(t)}
+                              className="p-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 hover:text-white transition-all cursor-pointer"
+                              title="Edit tenant"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (window.confirm('Are you sure you want to delete this tenant?')) {
+                                  alert('Tenant deleted.');
+                                  setShowTenantForm(false);
+                                }
+                              }}
+                              className="p-1.5 rounded-lg bg-red-950/20 border border-red-900/40 text-red-400 hover:bg-red-600 hover:text-white transition-all cursor-pointer"
+                              title="Delete tenant"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {tenants.length === 0 && (
+                      <tr>
+                        <td colSpan={8} className="py-8 text-center text-xs text-slate-500">No tenants registered yet.</td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>

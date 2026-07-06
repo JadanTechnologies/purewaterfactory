@@ -21,7 +21,9 @@ import {
   FileText,
   Users,
   Shield,
-  Settings
+  Settings,
+  CheckCircle2,
+  Clock
 } from 'lucide-react';
 import { 
   Sale, 
@@ -34,6 +36,7 @@ import {
   Expense,
   CustomerPayment,
   UserAccount,
+  Tenant,
   EndOfDayReport
 } from '../types';
 
@@ -55,6 +58,7 @@ interface DashboardProps {
   onGenerateEndOfDay?: () => void;
   endOfDayReports?: EndOfDayReport[];
   users?: UserAccount[];
+  tenants?: Tenant[];
 }
 
 export default function Dashboard({
@@ -74,7 +78,8 @@ export default function Dashboard({
   hasAccess,
   onGenerateEndOfDay,
   endOfDayReports,
-  users = []
+  users = [],
+  tenants = []
 }: DashboardProps) {
 
   // Clock & Calculator States
@@ -695,60 +700,75 @@ export default function Dashboard({
                   {language === 'en' ? 'Oversee platform tenants, administrators, and system-wide controls.' : 'Kula da masu gudanarwar dandali, da saiti na gaba-daya.'}
                 </p>
               </div>
-              <button
-                onClick={() => onNavigate('settings')}
-                className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
-              >
-                <Users className="w-3.5 h-3.5" />
-                {language === 'en' ? 'Manage Tenant Admins' : 'Gudanar da Masu Tsare-tsare'}
-              </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               <div className="bg-slate-900/60 border border-slate-700/40 rounded-xl p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-sky-500/10 text-sky-400">
-                    <Users className="w-5 h-5" />
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-400">
+                    <Users className="w-4 h-4" />
                   </div>
-                  <div>
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">{language === 'en' ? 'Tenant Admins' : 'Masu Gudanarwa'}</span>
-                    <span className="text-xl font-mono font-bold text-white block">
-                      {users.filter(u => u.role === 'Administrator' || u.role === 'Super Admin').length}
-                    </span>
-                  </div>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{language === 'en' ? 'Total Tenants' : 'Jimlar Ma]aikata'}</span>
                 </div>
+                <span className="text-2xl font-mono font-bold text-white block">{tenants.length}</span>
               </div>
 
               <div className="bg-slate-900/60 border border-slate-700/40 rounded-xl p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400">
-                    <Shield className="w-5 h-5" />
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400">
+                    <CheckCircle2 className="w-4 h-4" />
                   </div>
-                  <div>
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">{language === 'en' ? 'Platform Status' : 'Matsayin Dandali'}</span>
-                    <span className="text-xl font-mono font-bold text-emerald-400 block">{language === 'en' ? 'Operational' : 'Ana Aikin'}</span>
-                  </div>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{language === 'en' ? 'Active Tenants' : 'Masu Aiki'}</span>
                 </div>
+                <span className="text-2xl font-mono font-bold text-emerald-400 block">{tenants.filter(t => t.status === 'active').length}</span>
               </div>
 
               <div className="bg-slate-900/60 border border-slate-700/40 rounded-xl p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-400">
-                    <Settings className="w-5 h-5" />
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-1.5 rounded-lg bg-rose-500/10 text-rose-400">
+                    <AlertTriangle className="w-4 h-4" />
                   </div>
-                  <div>
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">{language === 'en' ? 'System Config' : 'Saitan Tsare-tsare'}</span>
-                    <span className="text-xl font-mono font-bold text-white block">{language === 'en' ? 'Managed' : 'An Gudanar'}</span>
-                  </div>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{language === 'en' ? 'Inactive Tenants' : 'Marasa Aiki'}</span>
                 </div>
+                <span className="text-2xl font-mono font-bold text-rose-400 block">{tenants.filter(t => t.status === 'inactive').length}</span>
+              </div>
+
+              <div className="bg-slate-900/60 border border-slate-700/40 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400">
+                    <DollarSign className="w-4 h-4" />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{language === 'en' ? 'Paid Tenants' : 'An Biya'}</span>
+                </div>
+                <span className="text-2xl font-mono font-bold text-emerald-400 block">{tenants.filter(t => t.paymentStatus === 'paid').length}</span>
+              </div>
+
+              <div className="bg-slate-900/60 border border-slate-700/40 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-400">
+                    <Clock className="w-4 h-4" />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{language === 'en' ? 'Unpaid Tenants' : 'Ba a Biya Ba'}</span>
+                </div>
+                <span className="text-2xl font-mono font-bold text-amber-400 block">{tenants.filter(t => t.paymentStatus === 'unpaid' || t.paymentStatus === 'overdue').length}</span>
+              </div>
+
+              <div className="bg-slate-900/60 border border-slate-700/40 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-1.5 rounded-lg bg-purple-500/10 text-purple-400">
+                    <Calendar className="w-4 h-4" />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{language === 'en' ? 'Recent Tenants' : 'Na ]a]an'}</span>
+                </div>
+                <span className="text-2xl font-mono font-bold text-white block">{tenants.filter(t => t.startDate && new Date(t.startDate) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length}</span>
               </div>
             </div>
 
             <div className="mt-4 p-4 bg-slate-900/40 border border-slate-700/30 rounded-xl">
               <p className="text-[11px] text-slate-400 leading-relaxed">
                 {language === 'en' 
-                  ? 'As Platform Owner, you have full control over the entire platform. Use the Settings module to create and manage tenant administrator accounts. Tenant admins can then manage their own factory operations, staff, and permissions independently.'
-                  : 'A matsayin Ma]aikin Dandali, kana da ikon gudanar da dandali gaba-daya. Yi amfani da sitar tsare-tsare don samu da gudanar da masu gudanarwar masana\'anta. Masu gudanarwa na ma]aikata suna iya gudanar da aikin masana\'anta, ma\'aikata, da izini na kansu.'}
+                  ? 'As Platform Owner, you have full control over the entire platform. Use the navigation to create tenants, manage platform settings, and monitor transactions.'
+                  : 'A matsayin Ma]aikin Dandali, kana da ikon gudanar da dandali gaba-daya. Yi amfani da haya]e don samu da gudanar da saitunan dandali, da sauraren harkokin kudi.'}
               </p>
             </div>
           </div>

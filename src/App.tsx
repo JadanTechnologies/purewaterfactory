@@ -58,7 +58,8 @@ import {
   FactorySettings,
   UserAccount,
   CustomRole,
-  EndOfDayReport
+  EndOfDayReport,
+  Tenant
 } from './types';
 
 // Importing modules
@@ -177,6 +178,7 @@ export default function App() {
   const [notifications, setNotifications] = useState<NotificationItem[]>(() => db.getNotifications());
   const [users, setUsers] = useState<UserAccount[]>(() => db.getUsers());
   const [roles, setRoles] = useState<CustomRole[]>(() => db.getRoles());
+  const [tenants, setTenants] = useState<Tenant[]>(() => db.getTenants());
 
   // End of Day state
   const [endOfDayReports, setEndOfDayReports] = useState<EndOfDayReport[]>(() => db.getEndOfDayReports());
@@ -213,6 +215,7 @@ export default function App() {
     setNotifications(db.getNotifications());
     setUsers(db.getUsers());
     setRoles(db.getRoles());
+    setTenants(db.getTenants());
     setLockdownState(db.getLockdownState());
     setEndOfDayReports(db.getEndOfDayReports());
   };
@@ -487,6 +490,20 @@ export default function App() {
     showPopupNotification(`Role ${id} deleted`, 'info');
   };
 
+  const handleSaveTenant = (tenant: Tenant) => {
+    db.saveTenant(tenant);
+    syncDatabaseStates();
+    playSound('notification');
+    showPopupNotification(`Tenant ${tenant.name} saved`, 'success');
+  };
+
+  const handleDeleteTenant = (id: string) => {
+    db.deleteTenant(id);
+    syncDatabaseStates();
+    playSound('notification');
+    showPopupNotification('Tenant deleted', 'info');
+  };
+
   const handleNotificationsRead = () => {
     db.markNotificationsAsRead();
     setNotifications(db.getNotifications());
@@ -547,7 +564,7 @@ export default function App() {
     
     const roleName = currentUser.role;
     if (roleName === 'Super Admin') {
-      return ['dashboard', 'settings'].includes(moduleName);
+      return ['dashboard', 'settings', 'create-tenant', 'transactions', 'history'].includes(moduleName);
     }
     if (roleName === 'Administrator') return true;
     const matchingRole = roles.find(r => r.id === roleName);
@@ -575,7 +592,7 @@ export default function App() {
     return false;
   };
 
-  const navigationItems = [
+  const tenantAdminNavItems = [
     { name: 'dashboard', label: t('dashboard'), icon: Layers },
     { name: 'production', label: t('production'), icon: Droplet },
     { name: 'inventory', label: t('inventory'), icon: Layers },
@@ -590,6 +607,16 @@ export default function App() {
     { name: 'reports', label: t('reports'), icon: FileText },
     { name: 'settings', label: t('settings'), icon: Settings }
   ];
+
+  const superAdminNavItems = [
+    { name: 'dashboard', label: 'Platform Dashboard', icon: Layers },
+    { name: 'create-tenant', label: 'Create New Tenant', icon: Users },
+    { name: 'settings', label: 'Platform Settings', icon: Settings },
+    { name: 'transactions', label: 'Transactions', icon: DollarSign },
+    { name: 'history', label: 'History', icon: FileText }
+  ];
+
+  const navigationItems = currentUser.role === 'Super Admin' ? superAdminNavItems : tenantAdminNavItems;
 
   // Perform search matches across customers, invoices, batches
   const performSearchQuery = () => {
@@ -983,7 +1010,67 @@ export default function App() {
                   onGenerateEndOfDay={generateEndOfDayReport}
                   endOfDayReports={endOfDayReports}
                   users={users}
+                  tenants={tenants}
                 />
+              )}
+
+              {activeModule === 'create-tenant' && (
+                <div className="space-y-6">
+                  <div className="bg-slate-800 border border-slate-700/60 rounded-2xl p-6 shadow-lg">
+                    <h2 className="text-lg font-bold text-white mb-2">{language === 'en' ? 'Create New Tenant' : '}ir]i Sabon Ma]aikata'}</h2>
+                    <p className="text-xs text-slate-400 mb-6">{language === 'en' ? 'Register a new tenant business on the platform.' : 'Rikidi sabon kasuwanci a kan dandali.'}</p>
+                    <form onSubmit={(e) => { e.preventDefault(); alert(language === 'en' ? 'Tenant created successfully.' : 'An }ir]i mai amfani cikin nasara.'); }} className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="space-y-2">
+                        <label className="text-xs font-semibold text-slate-400">Factory / Business Name</label>
+                        <input type="text" required className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-semibold text-slate-400">Contact Email</label>
+                        <input type="email" required className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-semibold text-slate-400">Phone Number</label>
+                        <input type="text" required className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-semibold text-slate-400">Subscription Plan</label>
+                        <select className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none">
+                          <option value="Basic">Basic</option>
+                          <option value="Standard">Standard</option>
+                          <option value="Enterprise">Enterprise</option>
+                        </select>
+                      </div>
+                      <div className="md:col-span-2 flex justify-end gap-3 pt-3 border-t border-slate-700/60">
+                        <button type="button" onClick={() => setActiveModule('dashboard')} className="py-2.5 px-4 rounded-xl border border-slate-700 text-slate-300 font-semibold text-xs hover:bg-slate-700 transition-all cursor-pointer">Cancel</button>
+                        <button type="submit" className="py-2.5 px-5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs transition-all shadow-md cursor-pointer">Create Tenant</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              {activeModule === 'transactions' && (
+                <div className="space-y-6">
+                  <div className="bg-slate-800 border border-slate-700/60 rounded-2xl p-6 shadow-lg">
+                    <h2 className="text-lg font-bold text-white mb-2">{language === 'en' ? 'Platform Transactions' : 'Harkokin Kudin Dandali'}</h2>
+                    <p className="text-xs text-slate-400 mb-6">{language === 'en' ? 'Subscription payments and billing history for all tenants.' : 'Biya ku]a da tarihin lissafin ku]a na duk ma]aikata.'}</p>
+                    <div className="text-center py-8 text-xs text-slate-500">
+                      {language === 'en' ? 'No transactions recorded yet.' : 'Ba a }ir]i harkokin kudi ba tukuna.'}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeModule === 'history' && (
+                <div className="space-y-6">
+                  <div className="bg-slate-800 border border-slate-700/60 rounded-2xl p-6 shadow-lg">
+                    <h2 className="text-lg font-bold text-white mb-2">{language === 'en' ? 'Platform History' : 'Tarihin Dandali'}</h2>
+                    <p className="text-xs text-slate-400 mb-6">{language === 'en' ? 'Audit trail of platform activities: tenant creations, status changes, and admin actions.' : 'Jerin kulawa na ayyukan dandali: }ir]en ma]aikata, canje-canjen matsayi, da ayyukan shugaba.'}</p>
+                    <div className="text-center py-8 text-xs text-slate-500">
+                      {language === 'en' ? 'No history records yet.' : 'Ba a }ir]i bayanan tarihi ba tukuna.'}
+                    </div>
+                  </div>
+                </div>
               )}
 
               {activeModule === 'production' && (
@@ -1128,6 +1215,9 @@ export default function App() {
                   onDeleteUser={handleDeleteUser}
                   onSaveRole={handleSaveRole}
                   onDeleteRole={handleDeleteRole}
+                  onSaveTenant={handleSaveTenant}
+                  onDeleteTenant={handleDeleteTenant}
+                  tenants={tenants}
                   lockdownState={{
                     lockdownEndDate: lockdownState.lockdownEndDate,
                     isLocked: lockdownState.isLocked,

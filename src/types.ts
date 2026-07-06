@@ -194,6 +194,21 @@ export interface UserAccount {
   password?: string;
 }
 
+export interface Tenant {
+  id: string;
+  name: string;
+  businessName: string;
+  email: string;
+  phone: string;
+  address: string;
+  status: 'active' | 'inactive' | 'trial';
+  paymentStatus: 'paid' | 'unpaid' | 'overdue';
+  plan: string;
+  startDate: string;
+  endDate: string;
+  adminUserId: string;
+}
+
 export interface AuditLog {
   id: string;
   timestamp: string;

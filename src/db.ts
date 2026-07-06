@@ -23,7 +23,8 @@ import {
   UserAccount,
   CustomRole,
   LockdownState,
-  EndOfDayReport
+  EndOfDayReport,
+  Tenant
 } from './types';
 
 // Storage keys
@@ -45,7 +46,8 @@ const KEYS = {
   NOTIFICATIONS: 'pwfms_notifications',
   USERS: 'pwfms_users',
   ROLES: 'pwfms_roles',
-  END_OF_DAY_REPORTS: 'pwfms_endofday_reports'
+  END_OF_DAY_REPORTS: 'pwfms_endofday_reports',
+  TENANTS: 'pwfms_tenants'
 };
 
 const DEFAULT_SETTINGS: FactorySettings = {
@@ -65,6 +67,10 @@ const DEFAULT_SETTINGS: FactorySettings = {
 const DEFAULT_USERS: UserAccount[] = [
   { id: 'usr-0', name: 'Platform Owner', username: 'super', email: 'superadmin@nile.com', phone: '+234 803 000 0000', role: 'Super Admin', password: 'super' },
   { id: 'usr-1', name: 'Adamu Ibrahim', username: 'admin', email: 'admin@nile.com', phone: '+234 803 111 2222', role: 'Administrator', password: 'admin' }
+];
+
+const DEFAULT_TENANTS: Tenant[] = [
+  { id: 'tenant-1', name: 'Nile Premium Factory', businessName: 'Nile Premium Table Water', email: 'admin@nile.com', phone: '+234 803 111 2222', address: 'Plot 42, Challawa Industrial Estate, Kano, Nigeria', status: 'active', paymentStatus: 'paid', plan: 'Enterprise', startDate: '2026-01-01', endDate: '2027-01-01', adminUserId: 'usr-1' }
 ];
 
 const DEFAULT_ROLES: CustomRole[] = [
@@ -169,6 +175,9 @@ export const db = {
     if (!localStorage.getItem(KEYS.ROLES)) {
       localStorage.setItem(KEYS.ROLES, JSON.stringify(DEFAULT_ROLES));
     }
+    if (!localStorage.getItem(KEYS.TENANTS)) {
+      localStorage.setItem(KEYS.TENANTS, JSON.stringify(DEFAULT_TENANTS));
+    }
   },
 
   reset() {
@@ -188,6 +197,7 @@ export const db = {
     localStorage.setItem(KEYS.AUDIT_LOGS, JSON.stringify(INITIAL_AUDIT));
     localStorage.setItem(KEYS.USERS, JSON.stringify(DEFAULT_USERS));
     localStorage.setItem(KEYS.ROLES, JSON.stringify(DEFAULT_ROLES));
+    localStorage.setItem(KEYS.TENANTS, JSON.stringify(DEFAULT_TENANTS));
   },
 
   exportDatabase(): string {
@@ -770,5 +780,28 @@ export const db = {
   getLastEndOfDayReport(): EndOfDayReport | null {
     const reports = this.getEndOfDayReports();
     return reports[0] || null;
+  },
+
+  // Tenants Management
+  getTenants(): Tenant[] {
+    const t = localStorage.getItem(KEYS.TENANTS);
+    return t ? JSON.parse(t) : DEFAULT_TENANTS;
+  },
+  saveTenant(tenant: Tenant) {
+    const tenants = this.getTenants();
+    const idx = tenants.findIndex(t => t.id === tenant.id);
+    if (idx > -1) {
+      tenants[idx] = tenant;
+    } else {
+      tenants.push(tenant);
+    }
+    localStorage.setItem(KEYS.TENANTS, JSON.stringify(tenants));
+    this.addAudit('Super Admin', 'Save Tenant', `Saved tenant ${tenant.name} (${tenant.status})`);
+  },
+  deleteTenant(id: string) {
+    const tenants = this.getTenants();
+    const filtered = tenants.filter(t => t.id !== id);
+    localStorage.setItem(KEYS.TENANTS, JSON.stringify(filtered));
+    this.addAudit('Super Admin', 'Delete Tenant', `Deleted tenant ID: ${id}`);
   }
 };
