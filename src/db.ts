@@ -64,13 +64,7 @@ const DEFAULT_SETTINGS: FactorySettings = {
 
 const DEFAULT_USERS: UserAccount[] = [
   { id: 'usr-0', name: 'Platform Owner', username: 'super', email: 'superadmin@nile.com', phone: '+234 803 000 0000', role: 'Super Admin', password: 'super' },
-  { id: 'usr-1', name: 'Adamu Ibrahim', username: 'admin', email: 'admin@nile.com', phone: '+234 803 111 2222', role: 'Administrator', password: 'admin' },
-  { id: 'usr-2', name: 'Garba Shehu', email: 'manager@nile.com', phone: '+234 803 222 3333', role: 'Factory Manager', password: 'password123' },
-  { id: 'usr-3', name: 'Shehu Garba', email: 'production@nile.com', phone: '+234 803 333 4444', role: 'Production Officer', password: 'password123' },
-  { id: 'usr-4', name: 'Maryam Yusuf', email: 'sales@nile.com', phone: '+234 803 444 5555', role: 'Sales & Cashier Officer', password: 'password123' },
-  { id: 'usr-5', name: 'Abubakar Sani', email: 'store@nile.com', phone: '+234 803 555 6666', role: 'Store Keeper', password: 'password123' },
-  { id: 'usr-6', name: 'Kabir Aliyu', email: 'cashier1@nile.com', phone: '+234 803 777 8888', role: 'Cashier', password: 'password123' },
-  { id: 'usr-7', name: 'Bello Umar', email: 'sales1@nile.com', phone: '+234 803 999 0000', role: 'Sales Officer', password: 'password123' }
+  { id: 'usr-1', name: 'Adamu Ibrahim', username: 'admin', email: 'admin@nile.com', phone: '+234 803 111 2222', role: 'Administrator', password: 'admin' }
 ];
 
 const DEFAULT_ROLES: CustomRole[] = [
@@ -84,86 +78,31 @@ const DEFAULT_ROLES: CustomRole[] = [
   { id: 'Store Keeper', name: 'Store Keeper', allowedModules: ['dashboard', 'inventory'] }
 ];
 
-export const INITIAL_INVENTORY: InventoryItem[] = [
-  { id: 'inv-1', name: 'Raw Nylon Film (Standard)', category: 'Raw Materials', type: 'Nylon', quantity: 245, unit: 'kg', costPrice: 2100 },
-  { id: 'inv-2', name: 'Water Treatment Chlorine', category: 'Raw Materials', type: 'Chemical', quantity: 42, unit: 'liters', costPrice: 4500 },
-  { id: 'inv-3', name: 'Micro-Filtration Cartridges', category: 'Raw Materials', type: 'Chemical', quantity: 18, unit: 'pieces', costPrice: 8500 },
-  { id: 'inv-4', name: 'Finished Pure Water Bags (20 Sachet/Bag)', category: 'Finished Goods', type: 'Pure Water Bag', quantity: 1850, unit: 'bags', costPrice: 150, sellingPrice: 200 }
-];
+export const INITIAL_INVENTORY: InventoryItem[] = [];
 
-const INITIAL_CUSTOMERS: Customer[] = [
-  { id: 'cust-1', name: 'Alhaji Ibrahim Musa', phone: '+234 805 987 6543', address: 'Bompai Industrial Area, Kano', businessName: 'Musa & Sons Wholesale Stores', creditLimit: 150000, outstandingBalance: 65000, createdAt: '2026-05-10' },
-  { id: 'cust-2', name: 'Hajiya Amina Bello', phone: '+234 809 333 4444', address: 'Kwara Avenue, Sabon Gari, Kano', businessName: 'Amina Cold Drinks Spot', creditLimit: 80000, outstandingBalance: 32000, createdAt: '2026-05-15' },
-  { id: 'cust-3', name: 'Musa Danladi Grocery', phone: '+234 812 444 5555', address: 'Zaria Road, Kano', businessName: 'Danladi Retail Outlet', creditLimit: 40000, outstandingBalance: 0, createdAt: '2026-06-01' },
-  { id: 'cust-4', name: 'Afolabi John Stores', phone: '+234 802 777 8888', address: 'Zoo Road, Kano', businessName: 'Afolabi Supermarket', creditLimit: 120000, outstandingBalance: 15000, createdAt: '2026-06-05' }
-];
+const INITIAL_CUSTOMERS: Customer[] = [];
 
-const INITIAL_SALES: Sale[] = [
-  { id: 'sale-1', invoiceNumber: 'INV-2026-001', date: '2026-06-25', customerId: 'cust-1', customerName: 'Alhaji Ibrahim Musa', salesOfficer: 'Maryam Yusuf', quantityBags: 300, unitPrice: 200, totalAmount: 60000, paymentMethod: 'Cash', status: 'Paid', amountPaid: 60000 },
-  { id: 'sale-2', invoiceNumber: 'INV-2026-002', date: '2026-06-26', customerId: 'cust-2', customerName: 'Hajiya Amina Bello', salesOfficer: 'Maryam Yusuf', quantityBags: 250, unitPrice: 200, totalAmount: 50000, paymentMethod: 'Credit', status: 'Unpaid', amountPaid: 0 },
-  { id: 'sale-3', invoiceNumber: 'INV-2026-003', date: '2026-06-26', customerId: 'cust-4', customerName: 'Afolabi John Stores', salesOfficer: 'Maryam Yusuf', quantityBags: 150, unitPrice: 200, totalAmount: 30000, paymentMethod: 'POS', status: 'Partially Paid', amountPaid: 15000 },
-  { id: 'sale-4', invoiceNumber: 'INV-2026-004', date: '2026-06-27', customerId: 'cust-3', customerName: 'Musa Danladi Grocery', salesOfficer: 'Maryam Yusuf', quantityBags: 200, unitPrice: 200, totalAmount: 40000, paymentMethod: 'Transfer', status: 'Paid', amountPaid: 40000 }
-];
+const INITIAL_SALES: Sale[] = [];
 
-const INITIAL_PRODUCTION: ProductionBatch[] = [
-  { id: 'batch-1', batchNumber: 'BAT-2026-101', date: '2026-06-24', shift: 'Morning', nylonType: 'Standard HD 0.25mm', nylonUsedKg: 15, bagsProduced: 1500, productionLine: 'Line A (Automatic)', operator: 'Shehu Garba', startTime: '08:00', endTime: '14:30', remarks: 'Optimized speed, perfect seals.' },
-  { id: 'batch-2', batchNumber: 'BAT-2026-102', date: '2026-06-25', shift: 'Night', nylonType: 'Standard HD 0.25mm', nylonUsedKg: 10, bagsProduced: 1000, productionLine: 'Line B (Semi-Auto)', operator: 'Usman Ibrahim', startTime: '20:00', endTime: '02:00', remarks: 'Required slight jaw alignment.' },
-  { id: 'batch-3', batchNumber: 'BAT-2026-103', date: '2026-06-26', shift: 'Morning', nylonType: 'Standard HD 0.25mm', nylonUsedKg: 18, bagsProduced: 1800, productionLine: 'Line A (Automatic)', operator: 'Shehu Garba', startTime: '08:00', endTime: '15:15', remarks: 'Excellent throughput.' }
-];
+const INITIAL_PRODUCTION: ProductionBatch[] = [];
 
-const INITIAL_EXPENSES: Expense[] = [
-  { id: 'exp-1', date: '2026-06-24', category: 'Generator Fuel', amount: 45000, description: 'Purchased 50L diesel for main factory generator', recordedBy: 'Kabir Aliyu' },
-  { id: 'exp-2', date: '2026-06-25', category: 'Repairs', amount: 15000, description: 'Serrated cutting jaw replacement for Line B sealer', recordedBy: 'Kabir Aliyu' },
-  { id: 'exp-3', date: '2026-06-26', category: 'Transport', amount: 8500, description: 'Fuel replenishment for Delivery Van Toyota Hiace', recordedBy: 'Kabir Aliyu' },
-  { id: 'exp-4', date: '2026-06-27', category: 'Maintenance', amount: 12000, description: 'Water treatment reverse osmosis system pre-filter wash', recordedBy: 'Kabir Aliyu' }
-];
+const INITIAL_EXPENSES: Expense[] = [];
 
-const INITIAL_RETURNS: ReturnedWater[] = [
-  { id: 'ret-1', customerId: 'cust-2', customerName: 'Hajiya Amina Bello', invoiceNumber: 'INV-2026-002', quantityBags: 10, reason: 'Leaked', date: '2026-06-26', receivedBy: 'Abubakar Sani' },
-  { id: 'ret-2', customerId: 'cust-1', customerName: 'Alhaji Ibrahim Musa', invoiceNumber: 'INV-2026-001', quantityBags: 5, reason: 'Damaged', date: '2026-06-25', receivedBy: 'Abubakar Sani' }
-];
+const INITIAL_RETURNS: ReturnedWater[] = [];
 
-const INITIAL_LEAKAGES: LeakDamage[] = [
-  { id: 'leak-1', batchNumber: 'BAT-2026-101', quantityBags: 12, reason: 'Machine Fault', date: '2026-06-24', employeeResponsible: 'Shehu Garba', lossValue: 1800 },
-  { id: 'leak-2', batchNumber: 'BAT-2026-102', quantityBags: 8, reason: 'Packaging Fault', date: '2026-06-25', employeeResponsible: 'Usman Ibrahim', lossValue: 1200 }
-];
+const INITIAL_LEAKAGES: LeakDamage[] = [];
 
-const INITIAL_EMPLOYEES: Employee[] = [
-  { id: 'emp-1', name: 'Shehu Garba', role: 'Production Supervisor', phone: '+234 803 111 2222', salary: 90000, joinedDate: '2025-01-10', performanceRating: 4.8 },
-  { id: 'emp-2', name: 'Maryam Yusuf', role: 'Sales & Marketing Manager', phone: '+234 803 333 4444', salary: 85000, joinedDate: '2025-02-15', performanceRating: 4.9 },
-  { id: 'emp-3', name: 'Abubakar Sani', role: 'Warehouse Store Keeper', phone: '+234 803 555 6666', salary: 70000, joinedDate: '2025-03-01', performanceRating: 4.5 },
-  { id: 'emp-4', name: 'Kabir Aliyu', role: 'Senior Cashier & Accountant', phone: '+234 803 777 8888', salary: 80000, joinedDate: '2025-01-20', performanceRating: 4.7 },
-  { id: 'emp-5', name: 'Danjuma Bala', role: 'Lead Delivery Driver', phone: '+234 803 999 0000', salary: 60000, joinedDate: '2025-04-10', performanceRating: 4.2 }
-];
+const INITIAL_EMPLOYEES: Employee[] = [];
 
-const INITIAL_DELIVERIES: DeliveryNote[] = [
-  { id: 'del-1', deliveryNumber: 'DN-2026-001', date: '2026-06-25', driverName: 'Danjuma Bala', vehicleNumber: 'KAN-924-XX', customerId: 'cust-1', customerName: 'Alhaji Ibrahim Musa', destination: 'Bompai Stores', quantityBags: 200, status: 'Delivered' },
-  { id: 'del-2', deliveryNumber: 'DN-2026-002', date: '2026-06-26', driverName: 'Danjuma Bala', vehicleNumber: 'KAN-924-XX', customerId: 'cust-2', customerName: 'Hajiya Amina Bello', destination: 'Sabon Gari Cold Room', quantityBags: 150, status: 'Pending' }
-];
+const INITIAL_DELIVERIES: DeliveryNote[] = [];
 
-const INITIAL_NOTIFICATIONS: NotificationItem[] = [
-  { id: 'not-1', timestamp: '2026-06-26T10:30:00Z', type: 'stock', title: 'Low Stock Alert', message: 'Water Chlorine levels are at 42L. Consider restocking soon.', read: false },
-  { id: 'not-2', timestamp: '2026-06-27T08:00:00Z', type: 'debt', title: 'Outstanding Balance Exceeded', message: 'Alhaji Ibrahim Musa has outstanding debt of ₦65,000.', read: false },
-  { id: 'not-3', timestamp: '2026-06-27T12:00:00Z', type: 'production', title: 'Daily Production Complete', message: 'Batch BAT-2026-103 Morning shift production complete: 1,800 bags recorded.', read: true }
-];
+const INITIAL_NOTIFICATIONS: NotificationItem[] = [];
 
-const INITIAL_STOCK_MOVEMENTS: StockMovement[] = [
-  { id: 'move-1', itemId: 'inv-1', itemName: 'Raw Nylon Film (Standard)', date: '2026-06-24', type: 'Stock Out', quantity: 15, reason: 'Production Batch BAT-2026-101', operator: 'Abubakar Sani' },
-  { id: 'move-2', itemId: 'inv-4', itemName: 'Finished Pure Water Bags', date: '2026-06-24', type: 'Stock In', quantity: 1500, reason: 'Production Batch BAT-2026-101', operator: 'Abubakar Sani' },
-  { id: 'move-3', itemId: 'inv-1', itemName: 'Raw Nylon Film (Standard)', date: '2026-06-25', type: 'Stock Out', quantity: 10, reason: 'Production Batch BAT-2026-102', operator: 'Abubakar Sani' },
-  { id: 'move-4', itemId: 'inv-4', itemName: 'Finished Pure Water Bags', date: '2026-06-25', type: 'Stock In', quantity: 1000, reason: 'Production Batch BAT-2026-102', operator: 'Abubakar Sani' }
-];
+const INITIAL_STOCK_MOVEMENTS: StockMovement[] = [];
 
-const INITIAL_PAYMENTS: CustomerPayment[] = [
-  { id: 'pay-1', customerId: 'cust-1', customerName: 'Alhaji Ibrahim Musa', date: '2026-06-25', amount: 50000, paymentMethod: 'Transfer', reference: 'TXN-98240598' },
-  { id: 'pay-2', customerId: 'cust-2', customerName: 'Hajiya Amina Bello', date: '2026-06-26', amount: 18000, paymentMethod: 'Cash', reference: 'CSH-02840' }
-];
+const INITIAL_PAYMENTS: CustomerPayment[] = [];
 
-const INITIAL_AUDIT: AuditLog[] = [
-  { id: 'audit-1', timestamp: '2026-06-25T08:15:00Z', user: 'Shehu Garba', role: 'Production Officer', action: 'Log Production', details: 'Created production batch BAT-2026-101 (1500 Bags)' },
-  { id: 'audit-2', timestamp: '2026-06-26T14:10:00Z', user: 'Maryam Yusuf', role: 'Sales Officer', action: 'Create Invoice', details: 'Created Invoice INV-2026-002 for Hajiya Amina Bello' },
-  { id: 'audit-3', timestamp: '2026-06-26T16:45:00Z', user: 'Kabir Aliyu', role: 'Cashier', action: 'Receive Payment', details: 'Logged payment of ₦18,000 from Hajiya Amina Bello' }
-];
+const INITIAL_AUDIT: AuditLog[] = [];
 
 // Lockdown State keys
 const LOCKDOWN_KEY = 'pwfms_lockdown_state';
