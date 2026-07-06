@@ -63,7 +63,8 @@ const DEFAULT_SETTINGS: FactorySettings = {
 };
 
 const DEFAULT_USERS: UserAccount[] = [
-  { id: 'usr-1', name: 'Adamu Ibrahim', email: 'admin@nile.com', phone: '+234 803 111 2222', role: 'Administrator', password: 'password123' },
+  { id: 'usr-0', name: 'Platform Owner', username: 'super', email: 'superadmin@nile.com', phone: '+234 803 000 0000', role: 'Super Admin', password: 'super' },
+  { id: 'usr-1', name: 'Adamu Ibrahim', username: 'admin', email: 'admin@nile.com', phone: '+234 803 111 2222', role: 'Administrator', password: 'admin' },
   { id: 'usr-2', name: 'Garba Shehu', email: 'manager@nile.com', phone: '+234 803 222 3333', role: 'Factory Manager', password: 'password123' },
   { id: 'usr-3', name: 'Shehu Garba', email: 'production@nile.com', phone: '+234 803 333 4444', role: 'Production Officer', password: 'password123' },
   { id: 'usr-4', name: 'Maryam Yusuf', email: 'sales@nile.com', phone: '+234 803 444 5555', role: 'Sales & Cashier Officer', password: 'password123' },
@@ -73,12 +74,13 @@ const DEFAULT_USERS: UserAccount[] = [
 ];
 
 const DEFAULT_ROLES: CustomRole[] = [
+  { id: 'Super Admin', name: 'Super Admin', allowedModules: ['dashboard', 'production', 'inventory', 'sales', 'customers', 'returns', 'leakages', 'expenses', 'staff', 'deliveries', 'financials', 'reports', 'settings'] },
   { id: 'Administrator', name: 'Administrator', allowedModules: ['dashboard', 'production', 'inventory', 'sales', 'customers', 'returns', 'leakages', 'expenses', 'staff', 'deliveries', 'financials', 'reports', 'settings'] },
   { id: 'Factory Manager', name: 'Factory Manager', allowedModules: ['dashboard', 'production', 'inventory', 'sales', 'customers', 'returns', 'leakages', 'expenses', 'deliveries', 'financials', 'reports'] },
   { id: 'Production Officer', name: 'Production Officer', allowedModules: ['dashboard', 'production', 'leakages'] },
   { id: 'Sales & Cashier Officer', name: 'Sales & Cashier Officer', allowedModules: ['dashboard', 'sales', 'customers', 'returns', 'deliveries', 'expenses', 'financials'] },
   { id: 'Sales Officer', name: 'Sales Officer', allowedModules: ['dashboard', 'sales', 'customers', 'returns', 'deliveries'] },
-  { id: 'Cashier', name: 'Cashier', allowedModules: ['dashboard', 'sales', 'customers', 'expenses', 'financials'] },
+  { id: 'Cashier', name: 'Cashier', allowedModules: ['dashboard', 'customers', 'expenses', 'financials'] },
   { id: 'Store Keeper', name: 'Store Keeper', allowedModules: ['dashboard', 'inventory'] }
 ];
 
@@ -643,6 +645,7 @@ export const db = {
   },
   getRoleUser(role: UserRole): string {
     switch (role) {
+      case 'Super Admin': return 'Platform Owner (Super Admin)';
       case 'Administrator': return 'Adamu Ibrahim (Admin)';
       case 'Factory Manager': return 'Garba Shehu (Manager)';
       case 'Production Officer': return 'Shehu Garba (Production)';

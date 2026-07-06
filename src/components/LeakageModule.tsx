@@ -40,7 +40,7 @@ export default function LeakageModule({
   const [reason, setReason] = useState<'Machine Fault' | 'Packaging Fault' | 'Transportation' | 'Handling'>('Machine Fault');
   const [employee, setEmployee] = useState('Shehu Garba');
 
-  const canWrite = activeRole === 'Administrator' || activeRole === 'Factory Manager' || activeRole === 'Production Officer';
+  const canWrite = activeRole === 'Administrator' || activeRole === 'Super Admin' || activeRole === 'Factory Manager' || activeRole === 'Production Officer';
 
   // Average cost of one bag is 150 naira (as defined in inventory)
   const COST_PER_BAG = 150;

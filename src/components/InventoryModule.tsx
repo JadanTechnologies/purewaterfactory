@@ -42,7 +42,7 @@ export default function InventoryModule({
   const [adjustType, setAdjustType] = useState<'Stock In' | 'Stock Out' | 'Adjustment'>('Stock In');
   const [adjustReason, setAdjustReason] = useState('');
 
-  const canWrite = activeRole === 'Administrator' || activeRole === 'Factory Manager' || activeRole === 'Store Keeper';
+  const canWrite = activeRole === 'Administrator' || activeRole === 'Super Admin' || activeRole === 'Factory Manager' || activeRole === 'Store Keeper';
 
   const handleAdjustmentSubmit = (e: React.FormEvent) => {
     e.preventDefault();

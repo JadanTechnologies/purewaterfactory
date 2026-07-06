@@ -13,10 +13,8 @@ interface LoginScreenProps {
 }
 
 export default function LoginScreen({ onLogin }: LoginScreenProps) {
-  const usersList = db.getUsers();
-  
-  const [selectedUserId, setSelectedUserId] = useState(usersList[0]?.id || 'usr-1');
-  const [password, setPassword] = useState('password123');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [showForgot, setShowForgot] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
@@ -24,11 +22,22 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!username) {
+      setError('Please enter your username or email.');
+      return;
+    }
     if (!password) {
       setError('Please enter your password.');
       return;
     }
-    const user = usersList.find(u => u.id === selectedUserId);
+
+    const usersList = db.getUsers();
+    const user = usersList.find(u => {
+      const matchUsername = u.username && u.username.toLowerCase() === username.toLowerCase();
+      const matchEmail = u.email.toLowerCase() === username.toLowerCase();
+      const matchName = u.name.toLowerCase() === username.toLowerCase();
+      return matchUsername || matchEmail || matchName;
+    });
     if (user) {
       if (user.password && password !== user.password) {
         setError('Incorrect password. Please verify security key.');
@@ -36,7 +45,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
       }
       onLogin(user);
     } else {
-      setError('Selected user not found.');
+      setError('Invalid credentials. User not found.');
     }
   };
 
@@ -112,35 +121,26 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
             <form onSubmit={handleLogin} className="space-y-6">
               <div>
                 <h2 className="text-2xl font-display font-bold tracking-tight text-white mb-1">Welcome back</h2>
-                <p className="text-slate-400 text-sm font-sans">Select your workspace role to begin session.</p>
+                <p className="text-slate-400 text-sm font-sans">Enter your workspace credentials to begin session.</p>
               </div>
 
-              {/* Dropdown to Select User Account */}
+              {/* Username / Email Field */}
               <div className="space-y-2">
                 <label className="text-xs font-display font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                  <Users className="w-3.5 h-3.5 text-sky-400" /> Authorized User Account
+                  <Users className="w-3.5 h-3.5 text-sky-400" /> Username or Email
                 </label>
                 <div className="relative">
-                  <select
-                    value={selectedUserId}
-                    onChange={(e) => {
-                      setSelectedUserId(e.target.value);
-                      setError('');
-                    }}
-                    className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-3 px-4 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-sky-500/40 focus:border-sky-500 transition-all duration-200 cursor-pointer appearance-none"
-                    id="user-select-dropdown"
-                  >
-                    {usersList.map((u) => (
-                      <option key={u.id} value={u.id} className="bg-slate-800 text-white py-2">
-                        {u.name} — {u.role} ({u.email})
-                      </option>
-                    ))}
-                  </select>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-slate-400">
-                    <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20">
-                      <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
-                    </svg>
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <Users className="w-4 h-4" />
                   </div>
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => { setUsername(e.target.value); setError(''); }}
+                    placeholder="Enter username or email"
+                    className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-2.5 pl-10 pr-4 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-sky-500/40 focus:border-sky-500 transition-all duration-200"
+                    id="login-username-input"
+                  />
                 </div>
               </div>
 

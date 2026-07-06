@@ -140,9 +140,9 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserAccount>(() => {
     const savedUsers = db.getUsers();
-    return savedUsers[0] || { id: 'usr-1', name: 'Adamu Ibrahim', email: 'admin@nile.com', phone: '+234 803 111 2222', role: 'Administrator', password: 'password123' };
+    return savedUsers[0] || { id: 'usr-0', name: 'Platform Owner', username: 'super', email: 'superadmin@nile.com', phone: '+234 803 000 0000', role: 'Super Admin', password: 'super' };
   });
-  const [authenticatedRole, setAuthenticatedRole] = useState<string>('Administrator');
+  const [authenticatedRole, setAuthenticatedRole] = useState<string>('Super Admin');
   const [activeModule, setActiveModule] = useState('dashboard');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -496,9 +496,9 @@ export default function App() {
 
   // Quick switch active role mock tool (makes user testing of authorization rules highly delightful)
   const handleQuickRoleSwitch = (role: string) => {
-    if (authenticatedRole !== 'Administrator') {
+    if (authenticatedRole !== 'Administrator' && authenticatedRole !== 'Super Admin') {
       playSound('error');
-      showPopupNotification('Only Administrator can switch roles', 'error');
+      showPopupNotification('Only Administrator or Super Admin can switch roles', 'error');
       return;
     }
     const matchingUser = users.find(u => u.role === role);
@@ -547,13 +547,13 @@ export default function App() {
     if (lockdownState.isLocked) return false;
     
     const roleName = currentUser.role;
+    // Super Admin and Administrator have full platform access
+    if (roleName === 'Super Admin' || roleName === 'Administrator') return true;
     // Check if dynamic role is defined in roles
     const matchingRole = roles.find(r => r.id === roleName);
     if (matchingRole) {
       return matchingRole.allowedModules.includes(moduleName);
     }
-
-    if (roleName === 'Administrator') return true;
     if (roleName === 'Factory Manager') {
       return ['dashboard', 'production', 'inventory', 'sales', 'customers', 'returns', 'leakages', 'expenses', 'deliveries', 'financials', 'reports'].includes(moduleName);
     }
@@ -750,7 +750,7 @@ export default function App() {
         <div className="flex items-center gap-3">
           
           {/* Quick privilege Switch tool (DELIGHTFUL FOR WORKSPACE REVIEWING) */}
-          {authenticatedRole === 'Administrator' && (
+          {(authenticatedRole === 'Administrator' || authenticatedRole === 'Super Admin') && (
             <div className="hidden lg:flex items-center gap-1 bg-slate-950 border border-slate-800 p-1 rounded-xl max-w-lg overflow-x-auto">
               <span className="text-[10px] text-slate-500 uppercase font-bold px-2 whitespace-nowrap">Role Switch:</span>
               {roles.map(r => (
@@ -940,7 +940,7 @@ export default function App() {
               </div>
 
               {/* Mobile Role Swapper inside menu */}
-              {authenticatedRole === 'Administrator' && (
+              {(authenticatedRole === 'Administrator' || authenticatedRole === 'Super Admin') && (
                 <div className="border-t border-slate-800 pt-4 space-y-2">
                   <span className="text-[9px] text-slate-500 font-bold uppercase block pl-1">Evaluate Active Role:</span>
                   <select

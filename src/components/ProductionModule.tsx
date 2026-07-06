@@ -52,7 +52,7 @@ export default function ProductionModule({
   const [selectedBatchQR, setSelectedBatchQR] = useState<ProductionBatch | null>(null);
 
   // Read-only logic check for permissions
-  const canWrite = activeRole === 'Administrator' || activeRole === 'Factory Manager' || activeRole === 'Production Officer';
+  const canWrite = activeRole === 'Administrator' || activeRole === 'Super Admin' || activeRole === 'Factory Manager' || activeRole === 'Production Officer';
 
   // Live auto calculation
   const bagsProduced = nylonUsedKg * conversionRate;

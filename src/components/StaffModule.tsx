@@ -55,7 +55,7 @@ export default function StaffModule({
     return initial;
   });
 
-  const canWrite = activeRole === 'Administrator' || activeRole === 'Factory Manager';
+  const canWrite = activeRole === 'Administrator' || activeRole === 'Super Admin' || activeRole === 'Factory Manager';
 
   const handleAddStaffSubmit = (e: React.FormEvent) => {
     e.preventDefault();

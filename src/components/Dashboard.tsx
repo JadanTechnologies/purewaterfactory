@@ -676,7 +676,7 @@ export default function Dashboard({
       </div>
 
       {/* FOOTER AUDIT LOG (Only visible to admin and manager for auditing tracking compliance) */}
-      {(activeRole === 'Administrator' || activeRole === 'Factory Manager') && (
+      {(activeRole === 'Administrator' || activeRole === 'Super Admin' || activeRole === 'Factory Manager') && (
         <div className="bg-slate-800 border border-slate-700/60 rounded-2xl p-4 shadow-lg">
           <div className="flex justify-between items-center mb-3">
             <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">

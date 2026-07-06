@@ -60,7 +60,7 @@ export default function SalesModule({
   const [whatsappSent, setWhatsappSent] = useState(false);
   const [smsSent, setSmsSent] = useState(false);
 
-  const canWrite = activeRole === 'Administrator' || activeRole === 'Factory Manager' || activeRole === 'Sales Officer' || activeRole === 'Sales & Cashier Officer';
+  const canWrite = activeRole === 'Administrator' || activeRole === 'Super Admin' || activeRole === 'Factory Manager' || activeRole === 'Sales Officer' || activeRole === 'Sales & Cashier Officer';
 
   const playBellAlarm = () => {
     try {

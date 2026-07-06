@@ -167,6 +167,7 @@ const playSound = (type: 'success' | 'warning') => {
 
   // User Accounts state
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [userUsername, setUserUsername] = useState('');
   const [userFullName, setUserFullName] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [userPhone, setUserPhone] = useState('');
@@ -176,7 +177,7 @@ const playSound = (type: 'success' | 'warning') => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const canWrite = activeRole === 'Administrator';
+  const canWrite = activeRole === 'Administrator' || activeRole === 'Super Admin';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -272,8 +273,8 @@ const playSound = (type: 'success' | 'warning') => {
   };
 
   const handleDeleteRoleClick = (id: string) => {
-    if (id === 'Administrator') {
-      alert('Cannot delete the root Administrator role.');
+    if (id === 'Administrator' || id === 'Super Admin') {
+      alert('Cannot delete the root platform or factory administrator role.');
       return;
     }
     if (window.confirm(`Are you sure you want to delete the "${id}" role? All users assigned this role will lose permissions.`)) {
@@ -297,6 +298,7 @@ const playSound = (type: 'success' | 'warning') => {
   const handleOpenUserForm = (user?: UserAccount) => {
     if (user) {
       setEditingUserId(user.id);
+      setUserUsername(user.username || '');
       setUserFullName(user.name);
       setUserEmail(user.email);
       setUserPhone(user.phone || '');
@@ -304,6 +306,7 @@ const playSound = (type: 'success' | 'warning') => {
       setUserPassword(user.password || 'password123');
     } else {
       setEditingUserId(null);
+      setUserUsername('');
       setUserFullName('');
       setUserEmail('');
       setUserPhone('');
@@ -322,6 +325,7 @@ const playSound = (type: 'success' | 'warning') => {
       onSaveUser({
         id,
         name: userFullName.trim(),
+        username: userUsername.trim() || undefined,
         email: userEmail.trim(),
         phone: userPhone.trim(),
         role: userRole,
@@ -333,8 +337,8 @@ const playSound = (type: 'success' | 'warning') => {
   };
 
   const handleDeleteUserClick = (id: string) => {
-    if (id === 'usr-1') {
-      alert('Cannot delete the primary root system administrator.');
+    if (id === 'usr-0' || id === 'usr-1') {
+      alert('Cannot delete the primary root platform or system administrator.');
       return;
     }
     if (window.confirm('Are you sure you want to delete this user account? This cannot be undone.')) {
@@ -960,7 +964,18 @@ const playSound = (type: 'success' | 'warning') => {
                 </button>
               </div>
 
-              <form onSubmit={handleSaveUserSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-5">
+               <form onSubmit={handleSaveUserSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-slate-400">Login Username</label>
+                  <input
+                    type="text"
+                    value={userUsername}
+                    onChange={(e) => setUserUsername(e.target.value)}
+                    placeholder="e.g. super, admin, jdoe"
+                    className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none"
+                  />
+                </div>
+
                 <div className="space-y-2">
                   <label className="text-xs font-semibold text-slate-400">Full Trading Name</label>
                   <input
@@ -1047,6 +1062,7 @@ const playSound = (type: 'success' | 'warning') => {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-900/60 border-b border-slate-700/80 text-[10px] font-mono uppercase tracking-wider text-slate-400">
+                      <th className="py-3.5 px-5 font-bold">Username</th>
                       <th className="py-3.5 px-5 font-bold">Operator Name</th>
                       <th className="py-3.5 px-5 font-bold">Trading Email</th>
                       <th className="py-3.5 px-5 font-bold">Mobile Line</th>
@@ -1056,8 +1072,9 @@ const playSound = (type: 'success' | 'warning') => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-700/40 text-xs text-slate-200">
-{users.map((u) => (
+ {users.map((u) => (
                       <tr key={u.id} className="hover:bg-slate-700/20 transition-all">
+                        <td className="py-3.5 px-5 font-mono text-slate-300">{u.username || '-'}</td>
                         <td className="py-3.5 px-5 font-bold text-white flex items-center gap-2">
                           <div className="w-7 h-7 rounded-full bg-sky-600/10 border border-sky-500/20 flex items-center justify-center font-bold text-sky-400 text-[10px]">
                             {u.name.split(' ').map(n => n[0]).join('')}
@@ -1081,7 +1098,7 @@ const playSound = (type: 'success' | 'warning') => {
                             >
                               <Edit className="w-3.5 h-3.5" />
                             </button>
-                            {u.id !== 'usr-1' && (
+                            {u.id !== 'usr-0' && u.id !== 'usr-1' && (
                               <button
                                 onClick={() => handleDeleteUserClick(u.id)}
                                 className="p-1.5 rounded-lg bg-red-950/20 border border-red-900/40 text-red-400 hover:bg-red-600 hover:text-white transition-all cursor-pointer"

@@ -4,6 +4,7 @@
  */
 
 export type UserRole = 
+  | 'Super Admin' 
   | 'Administrator' 
   | 'Factory Manager' 
   | 'Production Officer' 
@@ -187,6 +188,7 @@ export interface UserAccount {
   id: string;
   name: string;
   email: string;
+  username?: string;
   phone: string;
   role: string; // can be standard or custom role name
   password?: string;
