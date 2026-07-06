@@ -70,7 +70,7 @@ const DEFAULT_USERS: UserAccount[] = [
 ];
 
 const DEFAULT_TENANTS: Tenant[] = [
-  { id: 'tenant-1', name: 'Nile Premium Factory', businessName: 'Nile Premium Table Water', email: 'admin@nile.com', phone: '+234 803 111 2222', address: 'Plot 42, Challawa Industrial Estate, Kano, Nigeria', status: 'active', paymentStatus: 'paid', plan: 'Enterprise', startDate: '2026-01-01', endDate: '2027-01-01', adminUserId: 'usr-1' }
+  { id: 'tenant-1', name: 'Nile Premium Factory', businessName: 'Nile Premium Table Water', username: 'admin', email: 'admin@nile.com', phone: '+234 803 111 2222', address: 'Plot 42, Challawa Industrial Estate, Kano, Nigeria', status: 'active', paymentStatus: 'paid', plan: 'Enterprise', startDate: '2026-01-01', endDate: '2027-01-01', adminUserId: 'usr-1' }
 ];
 
 const DEFAULT_ROLES: CustomRole[] = [

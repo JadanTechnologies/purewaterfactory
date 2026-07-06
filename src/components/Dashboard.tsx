@@ -330,6 +330,9 @@ export default function Dashboard({
         </div>
       </div>
 
+      {activeRole !== 'Super Admin' && (
+      <>
+
       {/* KPI Stats Cards Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" id="kpi-stats-grid">
         
@@ -685,6 +688,8 @@ export default function Dashboard({
         </div>
 
       </div>
+      </>
+      )}
 
       {/* SUPER ADMIN PLATFORM OVERVIEW */}
       {activeRole === 'Super Admin' && (

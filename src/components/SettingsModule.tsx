@@ -197,6 +197,7 @@ const playSound = (type: 'success' | 'warning') => {
   const [tenantStartDate, setTenantStartDate] = useState('');
   const [tenantEndDate, setTenantEndDate] = useState('');
   const [tenantAdminUserId, setTenantAdminUserId] = useState('');
+  const [tenantPassword, setTenantPassword] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -386,6 +387,7 @@ const playSound = (type: 'success' | 'warning') => {
       setTenantStartDate(tenant.startDate);
       setTenantEndDate(tenant.endDate);
       setTenantAdminUserId(tenant.adminUserId);
+      setTenantPassword(tenant.password || '');
     } else {
       setEditingTenantId(null);
       setTenantName('');
@@ -399,6 +401,7 @@ const playSound = (type: 'success' | 'warning') => {
       setTenantStartDate('');
       setTenantEndDate('');
       setTenantAdminUserId('');
+      setTenantPassword('');
     }
     setShowTenantForm(true);
   };
@@ -413,6 +416,7 @@ const playSound = (type: 'success' | 'warning') => {
       name: tenantName.trim(),
       businessName: tenantBusinessName.trim(),
       email: tenantEmail.trim(),
+      username: tenantEmail.trim().split('@')[0] || tenantName.trim().toLowerCase().replace(/\s+/g, '.'),
       phone: tenantPhone.trim(),
       address: tenantAddress.trim(),
       status: tenantStatus,
@@ -420,7 +424,8 @@ const playSound = (type: 'success' | 'warning') => {
       plan: tenantPlan,
       startDate: tenantStartDate || new Date().toISOString().split('T')[0],
       endDate: tenantEndDate,
-      adminUserId: tenantAdminUserId
+      adminUserId: tenantAdminUserId,
+      password: tenantPassword || undefined
     };
 
     if (onSaveTenant) {
@@ -1330,6 +1335,11 @@ const playSound = (type: 'success' | 'warning') => {
                 <div className="space-y-2">
                   <label className="text-xs font-semibold text-slate-400">Contact Email</label>
                   <input type="email" required value={tenantEmail} onChange={(e) => setTenantEmail(e.target.value)} className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-slate-400">Login Password</label>
+                  <input type="text" value={tenantPassword} onChange={(e) => setTenantPassword(e.target.value)} placeholder="Set initial login password" className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none font-mono" />
+                  <p className="text-[10px] text-slate-500">Tenant can update this password after first login.</p>
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-semibold text-slate-400">Phone Number</label>

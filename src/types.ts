@@ -199,6 +199,7 @@ export interface Tenant {
   name: string;
   businessName: string;
   email: string;
+  username: string;
   phone: string;
   address: string;
   status: 'active' | 'inactive' | 'trial';
@@ -207,6 +208,7 @@ export interface Tenant {
   startDate: string;
   endDate: string;
   adminUserId: string;
+  password?: string;
 }
 
 export interface AuditLog {
