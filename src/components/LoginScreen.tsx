@@ -32,14 +32,16 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
     }
 
     const usersList = db.getUsers();
+    const search = username.trim();
+    const pass = password.trim();
     const user = usersList.find(u => {
-      const matchUsername = u.username && u.username.toLowerCase() === username.toLowerCase();
-      const matchEmail = u.email.toLowerCase() === username.toLowerCase();
-      const matchName = u.name.toLowerCase() === username.toLowerCase();
+      const matchUsername = u.username && u.username.toLowerCase() === search.toLowerCase();
+      const matchEmail = u.email.toLowerCase() === search.toLowerCase();
+      const matchName = u.name.toLowerCase() === search.toLowerCase();
       return matchUsername || matchEmail || matchName;
     });
     if (user) {
-      if (user.password && password !== user.password) {
+      if (user.password && pass !== user.password) {
         setError('Incorrect password. Please verify security key.');
         return;
       }

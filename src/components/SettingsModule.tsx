@@ -342,7 +342,10 @@ const playSound = (type: 'success' | 'warning') => {
 
   const handleSaveUserSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userFullName.trim() || !userEmail.trim()) return;
+    if (!userFullName.trim() || !userEmail.trim()) {
+      alert('Full name and email are required.');
+      return;
+    }
 
     const id = editingUserId || 'usr-' + Date.now();
     if (onSaveUser) {
@@ -353,7 +356,7 @@ const playSound = (type: 'success' | 'warning') => {
         email: userEmail.trim(),
         phone: userPhone.trim(),
         role: userRole,
-        password: userPassword
+        password: userPassword.trim()
       });
       alert('User credentials updated successfully.');
       setShowUserForm(false);
@@ -408,7 +411,10 @@ const playSound = (type: 'success' | 'warning') => {
 
   const handleSaveTenantSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!tenantName.trim() || !tenantBusinessName.trim()) return;
+    if (!tenantName.trim() || !tenantBusinessName.trim()) {
+      alert('Tenant name and business name are required.');
+      return;
+    }
 
     const id = editingTenantId || 'tenant-' + Date.now();
     const tenant: Tenant = {
@@ -424,14 +430,28 @@ const playSound = (type: 'success' | 'warning') => {
       plan: tenantPlan,
       startDate: tenantStartDate || new Date().toISOString().split('T')[0],
       endDate: tenantEndDate,
-      adminUserId: tenantAdminUserId,
+      adminUserId: tenantAdminUserId || id,
       password: tenantPassword || undefined
     };
 
     if (onSaveTenant) {
       onSaveTenant(tenant);
     }
-    alert('Tenant saved successfully.');
+
+    if (onSaveUser) {
+      const tenantAdminUser: UserAccount = {
+        id: tenant.adminUserId || 'usr-tenant-' + Date.now(),
+        name: tenant.name,
+        username: tenant.username,
+        email: tenant.email,
+        phone: tenant.phone,
+        role: 'Administrator',
+        password: tenantPassword || 'password123'
+      };
+      onSaveUser(tenantAdminUser);
+    }
+
+    alert('Tenant and admin account created successfully.');
     setShowTenantForm(false);
   };
 
