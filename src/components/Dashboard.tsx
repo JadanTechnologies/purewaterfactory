@@ -9,16 +9,19 @@ import {
   Droplet, 
   DollarSign, 
   Layers, 
-  AlertTriangle, 
-  RotateCcw, 
-  ShieldAlert, 
-  UserCheck, 
-  ArrowUpRight, 
+  AlertTriangle,
+  RotateCcw,
+  ShieldAlert,
+  UserCheck,
+  ArrowUpRight,
   ChevronRight,
   TrendingDown,
   Calculator,
   Calendar,
-  FileText
+  FileText,
+  Users,
+  Shield,
+  Settings
 } from 'lucide-react';
 import { 
   Sale, 
@@ -30,6 +33,7 @@ import {
   UserRole,
   Expense,
   CustomerPayment,
+  UserAccount,
   EndOfDayReport
 } from '../types';
 
@@ -50,6 +54,7 @@ interface DashboardProps {
   hasAccess: (moduleName: string) => boolean;
   onGenerateEndOfDay?: () => void;
   endOfDayReports?: EndOfDayReport[];
+  users?: UserAccount[];
 }
 
 export default function Dashboard({
@@ -68,7 +73,8 @@ export default function Dashboard({
   onNavigate,
   hasAccess,
   onGenerateEndOfDay,
-  endOfDayReports
+  endOfDayReports,
+  users = []
 }: DashboardProps) {
 
   // Clock & Calculator States
@@ -674,6 +680,80 @@ export default function Dashboard({
         </div>
 
       </div>
+
+      {/* SUPER ADMIN PLATFORM OVERVIEW */}
+      {activeRole === 'Super Admin' && (
+        <div className="space-y-6">
+          <div className="bg-slate-800/80 border border-slate-700/50 rounded-2xl p-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+              <div>
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-sky-400" />
+                  {language === 'en' ? 'Platform Governance Center' : 'Ha]in Mulkin Dandali'}
+                </h3>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  {language === 'en' ? 'Oversee platform tenants, administrators, and system-wide controls.' : 'Kula da masu gudanarwar dandali, da saiti na gaba-daya.'}
+                </p>
+              </div>
+              <button
+                onClick={() => onNavigate('settings')}
+                className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <Users className="w-3.5 h-3.5" />
+                {language === 'en' ? 'Manage Tenant Admins' : 'Gudanar da Masu Tsare-tsare'}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-slate-900/60 border border-slate-700/40 rounded-xl p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-sky-500/10 text-sky-400">
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">{language === 'en' ? 'Tenant Admins' : 'Masu Gudanarwa'}</span>
+                    <span className="text-xl font-mono font-bold text-white block">
+                      {users.filter(u => u.role === 'Administrator' || u.role === 'Super Admin').length}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-slate-900/60 border border-slate-700/40 rounded-xl p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400">
+                    <Shield className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">{language === 'en' ? 'Platform Status' : 'Matsayin Dandali'}</span>
+                    <span className="text-xl font-mono font-bold text-emerald-400 block">{language === 'en' ? 'Operational' : 'Ana Aikin'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-slate-900/60 border border-slate-700/40 rounded-xl p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-400">
+                    <Settings className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">{language === 'en' ? 'System Config' : 'Saitan Tsare-tsare'}</span>
+                    <span className="text-xl font-mono font-bold text-white block">{language === 'en' ? 'Managed' : 'An Gudanar'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 p-4 bg-slate-900/40 border border-slate-700/30 rounded-xl">
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                {language === 'en' 
+                  ? 'As Platform Owner, you have full control over the entire platform. Use the Settings module to create and manage tenant administrator accounts. Tenant admins can then manage their own factory operations, staff, and permissions independently.'
+                  : 'A matsayin Ma]aikin Dandali, kana da ikon gudanar da dandali gaba-daya. Yi amfani da sitar tsare-tsare don samu da gudanar da masu gudanarwar masana\'anta. Masu gudanarwa na ma]aikata suna iya gudanar da aikin masana\'anta, ma\'aikata, da izini na kansu.'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* FOOTER AUDIT LOG (Only visible to admin and manager for auditing tracking compliance) */}
       {(activeRole === 'Administrator' || activeRole === 'Super Admin' || activeRole === 'Factory Manager') && (

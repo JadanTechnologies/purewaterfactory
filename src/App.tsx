@@ -543,13 +543,13 @@ export default function App() {
 
   // Navigation panel access checker
   const hasAccess = (moduleName: string): boolean => {
-    // Block all access if system is locked
     if (lockdownState.isLocked) return false;
     
     const roleName = currentUser.role;
-    // Super Admin and Administrator have full platform access
-    if (roleName === 'Super Admin' || roleName === 'Administrator') return true;
-    // Check if dynamic role is defined in roles
+    if (roleName === 'Super Admin') {
+      return ['dashboard', 'settings'].includes(moduleName);
+    }
+    if (roleName === 'Administrator') return true;
     const matchingRole = roles.find(r => r.id === roleName);
     if (matchingRole) {
       return matchingRole.allowedModules.includes(moduleName);
@@ -982,6 +982,7 @@ export default function App() {
                   hasAccess={hasAccess}
                   onGenerateEndOfDay={generateEndOfDayReport}
                   endOfDayReports={endOfDayReports}
+                  users={users}
                 />
               )}
 
