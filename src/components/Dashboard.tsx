@@ -51,6 +51,7 @@ interface DashboardProps {
   payments: CustomerPayment[];
   activeRole: UserRole;
   currency: string;
+  factoryName?: string;
   language: 'en' | 'ha';
   t: (key: string) => string;
   onNavigate: (module: string) => void;
@@ -72,6 +73,7 @@ export default function Dashboard({
   payments = [],
   activeRole,
   currency,
+  factoryName,
   language,
   t,
   onNavigate,
@@ -227,7 +229,12 @@ export default function Dashboard({
             {language === 'en' ? 'Active Session' : 'Zama na Yanzu'} - {activeRole}
           </span>
           <h1 className="text-2xl font-display font-extrabold text-white mt-2.5 flex items-center gap-2 tracking-tight">
-            {language === 'en' ? 'Operational Overview' : 'Bayanin Aiki na Gaba-daya'}
+            {activeRole === 'Super Admin' 
+              ? (language === 'en' ? 'Platform Command Center' : 'Ha]in Tsare-tsaren Dandali')
+              : (factoryName 
+                ? factoryName 
+                : (language === 'en' ? 'Operational Overview' : 'Bayanin Aiki na Gaba-daya'))
+            }
           </h1>
           <p className="text-slate-400 text-xs font-sans mt-1">
             {language === 'en' 
@@ -317,7 +324,7 @@ export default function Dashboard({
               {language === 'en' ? 'Record Sale' : 'Sabuwar Talla'}
             </button>
           )}
-          {hasAccess('settings') && (
+          {hasAccess('settings') && activeRole !== 'Super Admin' && (
             <button 
               onClick={onGenerateEndOfDay}
               className="bg-purple-600 hover:bg-purple-500 text-white font-display font-bold text-xs px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-md flex items-center justify-center gap-1.5 w-full md:w-auto tracking-wide"

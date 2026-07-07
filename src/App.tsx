@@ -495,6 +495,13 @@ export default function App() {
     syncDatabaseStates();
     playSound('notification');
     showPopupNotification(`Tenant ${tenant.name} saved`, 'success');
+    
+    if (tenant.businessName && settings.factoryName !== tenant.businessName) {
+      saveSettings({
+        ...settings,
+        factoryName: tenant.businessName
+      });
+    }
   };
 
   const handleDeleteTenant = (id: string) => {
@@ -1003,6 +1010,7 @@ export default function App() {
                   payments={payments}
                   activeRole={currentUser.role}
                   currency={settings.currency}
+                  factoryName={settings.factoryName}
                   language={language}
                   t={t}
                   onNavigate={(mod) => setActiveModule(mod)}

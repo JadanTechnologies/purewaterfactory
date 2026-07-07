@@ -284,6 +284,11 @@ const playSound = (type: 'success' | 'warning') => {
     e.preventDefault();
     if (!roleName.trim()) return;
 
+    if (!isSuperAdmin(activeRole) && roleName.trim().toLowerCase() === 'super admin') {
+      alert('Only Super Admin can create the Super Admin role.');
+      return;
+    }
+
     const id = editingRoleId || roleName.trim();
     if (onSaveRole) {
       onSaveRole({
@@ -1008,7 +1013,7 @@ const playSound = (type: 'success' | 'warning') => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {roles.map((r) => (
+              {(isSuperAdmin(activeRole) ? roles : roles.filter(r => r.id !== 'Super Admin')).map((r) => (
                 <div
                   key={r.id}
                   className="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-md flex flex-col justify-between space-y-4"
@@ -1144,14 +1149,14 @@ const playSound = (type: 'success' | 'warning') => {
 
                 <div className="space-y-2">
                   <label className="text-xs font-semibold text-slate-400">Assigned Dynamic Role</label>
-                  <select
-                    value={userRole}
-                    onChange={(e) => setUserRole(e.target.value)}
-                    className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none"
-                  >
-                    {roles.map(r => (
-                      <option key={r.id} value={r.id}>{r.name}</option>
-                    ))}
+                   <select
+                     value={userRole}
+                     onChange={(e) => setUserRole(e.target.value)}
+                     className="w-full bg-slate-900 text-white border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none"
+                   >
+                     {(isSuperAdmin(activeRole) ? roles : roles.filter(r => r.id !== 'Super Admin')).map(r => (
+                       <option key={r.id} value={r.id}>{r.name}</option>
+                     ))}
                   </select>
                 </div>
 
